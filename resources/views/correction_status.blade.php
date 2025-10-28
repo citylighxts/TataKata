@@ -33,7 +33,7 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-              const checkUrl = {!! json_encode(route('correction.check-status', $document->id)) !!};
+            const checkUrl = "{{ route('correction.check-status', $document->id) }}";
             const statusMessage = document.getElementById('status-message');
             const statusDisplay = document.getElementById('status-display');
             const mainTitle = document.getElementById('main-title');
