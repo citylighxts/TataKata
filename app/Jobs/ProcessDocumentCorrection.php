@@ -310,7 +310,7 @@ class ProcessDocumentCorrection implements ShouldQueue
             $timeoutDuration = 600; // 10 minutes per request
 
             // Chunk size (characters) - tuneable
-            $maxLength = 8000;
+            $maxLength = 50000;
             $textLen = mb_strlen($text, 'UTF-8');
             $chunks = [];
             for ($offset = 0; $offset < $textLen; $offset += $maxLength) {
