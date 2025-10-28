@@ -56,6 +56,12 @@ class HistoryController extends Controller
                                 ->where('user_id', $userId)
                                 ->firstOrFail();
 
+            // Prevent deleting documents that are currently being processed.
+            $statusLower = strtolower(trim($document->upload_status ?? ''));
+            if ($statusLower === 'processing') {
+                return redirect()->route('history')->with('error', "Dokumen ID {$itemId} sedang diproses dan tidak dapat dihapus.");
+            }
+
             // Safely attempt to delete the stored file (log but don't fail the whole operation)
             if (!empty($document->file_location)) {
                 try {
@@ -115,6 +121,12 @@ class HistoryController extends Controller
                 $document = Document::where('id', $itemId)
                                     ->where('user_id', $userId)
                                     ->firstOrFail();
+
+                // Prevent deleting a document that is currently being processed.
+                $statusLower = strtolower(trim($document->upload_status ?? ''));
+                if ($statusLower === 'processing') {
+                    return redirect()->route('history')->with('error', 'Dokumen sedang diproses dan tidak dapat dihapus.');
+                }
 
                 if (!empty($document->file_location)) {
                     try {

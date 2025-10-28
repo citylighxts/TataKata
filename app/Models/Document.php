@@ -11,7 +11,16 @@ class Document extends Model {
         'user_id',
         'file_name',
         'file_location',
+        'disk',
         'upload_status',
+        'original_text',
+        'corrected_text',
+        'details',
+        'progress_log',
+    ];
+
+    protected $casts = [
+        'progress_log' => 'array',
     ];
 
     public function user() {
