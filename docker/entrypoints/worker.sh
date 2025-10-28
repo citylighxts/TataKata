@@ -4,7 +4,7 @@
 
 set -e
 
-: ${QUEUE_WORKER_OPTS:=--sleep=3 --tries=3 --timeout=300 --memory=512}
+: ${QUEUE_WORKER_OPTS:=--sleep=3 --tries=3 --timeout=900 --memory=512}
 
 echo "Starting Laravel queue worker with options: ${QUEUE_WORKER_OPTS}"
 
