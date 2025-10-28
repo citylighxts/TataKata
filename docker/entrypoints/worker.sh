@@ -9,7 +9,12 @@ set -e
 echo "Starting Laravel queue worker with options: ${QUEUE_WORKER_OPTS}"
 
 # Ensure storage link exists (idempotent)
-php artisan storage:link || true
+if [ ! -L "public/storage" ]; then
+    echo "Storage link not found, creating link..."
+    php artisan storage:link
+else
+    echo "Storage link already exists, skipping."
+fi
 
 # Run the worker
 php artisan queue:work ${QUEUE_WORKER_OPTS}
