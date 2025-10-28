@@ -50,6 +50,8 @@ class DocumentController extends Controller
                 'upload_status' => 'Processing', 
             ]);
 
+            \Log::info('DEBUG UPLOAD: Path Absolut', ['resolved_path' => \Storage::disk($usedDisk)->path($path)]);
+
             \Log::info('Upload: created Document record', [
                 'document_id' => $document->id,
                 'file_location' => $document->file_location,
