@@ -20,60 +20,88 @@
 
     {{-- Navbar --}}
     <header class="relative z-50 backdrop-blur-xl bg-[#0A0A2E]/70 border-b border-[#85BBEB]/20 shadow-lg shadow-[#85BBEB]/5">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex justify-between items-center">
-                {{-- Logo --}}
-                <div class="flex items-center gap-3 group cursor-pointer">
-                    <div class="relative">
-                        <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
-                    </div>
-                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">Tata Kata</span>
-                </div>
+    <div class="w-full py-10"> 
+        <div class="flex justify-between items-center relative">
 
-                {{-- User Menu --}}
-                <div class="flex items-center gap-4">
-                    {{-- Profile Icon --}}
-                    <a href="{{ route('profile.edit') }}" class="relative flex items-center group cursor-pointer">
-                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#85BBEB] to-[#FEF9F0] flex items-center justify-center shadow-lg shadow-[#85BBEB]/30 group-hover:scale-110 transition-all duration-300">
-                            <svg class="w-6 h-6 text-[#0A0A2E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                            </svg>
-                        </div>
-                        <div class="absolute top-full right-0 mt-2 px-4 py-2 bg-[#1a1a40] border border-[#85BBEB]/30 text-[#FEF9F0] text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 backdrop-blur-xl">
-                            {{ Auth::user()->first_name . ' ' . Auth::user()->last_name ?? 'Profil' }}
-                            <div class="absolute -top-1 right-3 w-2 h-2 bg-[#1a1a40] border-l border-t border-[#85BBEB]/30 transform rotate-45"></div>
-                        </div>
-                    </a>
-
-                    {{-- Logout Button --}}
-                    <form method="POST" action="{{ route('logout') }}" class="relative group">
-                        @csrf
-                        <button type="submit" class="w-10 h-10 rounded-full bg-[#85BBEB]/10 border border-[#85BBEB]/30 flex items-center justify-center hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/50 transition-all duration-300 group">
-                            <svg class="w-6 h-6 text-[#85BBEB] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
-                            </svg>
-                        </button>
-                        <div class="absolute top-full right-0 mt-2 px-4 py-2 bg-[#1a1a40] border border-[#85BBEB]/30 text-[#FEF9F0] text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 backdrop-blur-xl">
-                            Keluar
-                            <div class="absolute -top-1 right-3 w-2 h-2 bg-[#1a1a40] border-l border-t border-[#85BBEB]/30 transform rotate-45"></div>
-                        </div>
-                    </form>
+            {{-- Logo --}}
+            <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer absolute left-0 top-1/2 -translate-y-1/2 pl-4">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
+                    <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo"
+                        class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                 </div>
+            </a>
+            
+
+            {{-- Tata Kata --}}
+            <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                <span
+                    class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">
+                    Tata Kata
+                </span>
             </div>
-        </div>
-    </header>
 
-    {{-- Main Content --}}
-    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
-        
-        {{-- Breadcrumb --}}
-        <a href="{{ route('dashboard') }}" class="inline-flex items-center gap-2 text-[#85BBEB] hover:text-[#FEF9F0] transition-colors duration-300 mb-8 group fade-in-up">
-            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {{-- Ikon User --}}
+            <div class="flex items-center gap-4 absolute right-0 top-1/2 -translate-y-1/2 pr-4">
+                {{-- Profil --}}
+                <a class="relative flex items-center group cursor-pointer">
+                    <div
+                        class="w-10 h-10 rounded-full bg-gradient-to-br from-[#85BBEB] to-[#FEF9F0] flex items-center justify-center shadow-lg shadow-[#85BBEB]/30 group-hover:scale-110 transition-all duration-300">
+                        <svg class="w-6 h-6 text-[#0A0A2E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                    </div>
+                    <div
+                        class="absolute top-full right-0 mt-2 px-4 py-2 bg-[#1a1a40] border border-[#85BBEB]/30 text-[#FEF9F0] text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 backdrop-blur-xl">
+                        {{ Auth::user()->first_name . ' ' . Auth::user()->last_name ?? 'Profil' }}
+                        <div
+                            class="absolute -top-1 right-3 w-2 h-2 bg-[#1a1a40] border-l border-t border-[#85BBEB]/30 transform rotate-45">
+                        </div>
+                    </div>
+                </a>
+
+                {{-- Tombol Logout --}}
+                <form method="POST" action="{{ route('logout') }}" class="relative group">
+                    @csrf
+                    <button type="submit"
+                        class="w-10 h-10 rounded-full bg-[#85BBEB]/10 border border-[#85BBEB]/30 flex items-center justify-center hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/50 transition-all duration-300 group">
+                        <svg class="w-6 h-6 text-[#85BBEB] group-hover:scale-110 transition-transform" fill="none"
+                            stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1" />
+                        </svg>
+                    </button>
+                    <div
+                        class="absolute top-full right-0 mt-2 px-4 py-2 bg-[#1a1a40] border border-[#85BBEB]/30 text-[#FEF9F0] text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 backdrop-blur-xl">
+                        Keluar
+                        <div
+                            class="absolute -top-1 right-3 w-2 h-2 bg-[#1a1a40] border-l border-t border-[#85BBEB]/30 transform rotate-45">
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</header>
+
+    <main class="relative">
+    {{-- Breadcrumb --}}
+    <div class="absolute left-0 w-screen">
+        <a href="{{ route('dashboard') }}"
+            class="flex items-center gap-2 text-[#85BBEB] hover:text-[#FEF9F0] transition-colors duration-300 group fade-in-up px-4 pt-2">
+            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform"
+                fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
             <span class="font-medium">Kembali ke Beranda</span>
         </a>
+    </div>
+
+    {{-- Main Content --}}
+    <div class="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        
 
         {{-- Page Title --}}
         <div class="text-center mb-8 sm:mb-12 fade-in-up" style="animation-delay: 0.1s;">

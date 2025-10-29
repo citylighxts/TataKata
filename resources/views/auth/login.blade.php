@@ -20,15 +20,22 @@
 
     {{-- Navbar --}}
     <header class="relative z-50 backdrop-blur-xl bg-[#0A0A2E]/70 border-b border-[#85BBEB]/20 shadow-lg shadow-[#85BBEB]/5">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
+                {{-- Logo --}}
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer">
                     <div class="relative">
                         <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
                         <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
-                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">Tata Kata</span>
                 </a>
+
+                {{-- Tata Kata --}}
+                <div class="absolute left-1/2 transform -translate-x-1/2">
+                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">Tata Kata</span>
+                </div>
+
+                {{-- Button Daftar --}}
                 <div class="flex gap-3">
                     <a href="{{ route('register') }}" class="px-6 py-2.5 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-medium relative overflow-hidden group">
                         <span class="relative z-10 font-semibold">Daftar</span>
@@ -204,18 +211,8 @@
                                 </div>
                             </form>
 
-                            {{-- Divider --}}
-                            <div class="relative my-6">
-                                <div class="absolute inset-0 flex items-center">
-                                    <div class="w-full border-t border-[#85BBEB]/20"></div>
-                                </div>
-                                <div class="relative flex justify-center text-sm">
-                                    <span class="px-4 bg-[#0A0A2E]/50 text-[#C0C0C0] backdrop-blur-sm">atau</span>
-                                </div>
-                            </div>
-
                             {{-- Register Link --}}
-                            <div class="text-center">
+                            <div class="text-center mt-6">
                                 <p class="text-[#C0C0C0]">
                                     Belum punya akun?
                                     <a href="{{ route('register') }}" class="text-[#85BBEB] hover:text-[#FEF9F0] font-semibold transition-colors duration-300 hover:underline">
