@@ -11,6 +11,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Smalot\PdfParser\Parser;
 use Illuminate\Support\Str;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class DocumentController extends Controller
 {
@@ -153,28 +155,32 @@ class DocumentController extends Controller
 
     public function download($id)
     {
-        $document = Document::findOrFail($id);
+    $document = Document::findOrFail($id);
 
-        if ($document->user_id !== Auth::id()) {
-            abort(403, 'Anda tidak memiliki akses ke koreksi ini.');
-        }
+    if ($document->user_id !== Auth::id()) {
+        abort(403, 'Anda tidak memiliki akses ke koreksi ini.');
+    }
 
-        $correctedText = $document->corrected_text;
-        
-        // Cek apakah hasil koreksi tersedia
-        if (empty($correctedText)) {
-            return back()->with('error', 'Hasil koreksi belum tersedia.');
-        }
+    $correctedText = $document->corrected_text;
+    if (empty($correctedText)) {
+        return back()->with('error', 'Hasil koreksi belum tersedia.');
+    }
 
-        // Membuat nama file yang aman dan deskriptif
-        $safeFileName = Str::slug($document->file_name);
-        $timestamp = now()->format('Ymd-His');
-        $filename = "koreksi-{$safeFileName}-{$timestamp}.md";
+    // Markdown → HTML
+    $htmlBody = Str::markdown($correctedText);
 
-        // Mengirimkan konten sebagai response dengan tipe text/markdown
-        return response($correctedText, 200)
-            ->header('Content-Type', 'text/markdown')
-            ->header('Content-Disposition', "attachment; filename=\"{$filename}\"");
+    // Nama file PDF
+    $safeFileName = Str::slug($document->file_name);
+    $timestamp = now()->format('Ymd-His');
+    $filename = "koreksi-{$safeFileName}-{$timestamp}.pdf";
+
+    // Render PDF dari Blade
+    $pdf = Pdf::loadView('pdf.correction', [
+        'title' => $document->file_name,
+        'html'  => $htmlBody,
+    ])->setPaper('a4'); // bisa ganti 'letter' dll.
+
+    return $pdf->download($filename);
     }
 
     /**
