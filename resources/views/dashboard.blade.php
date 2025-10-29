@@ -1,153 +1,406 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-[#e8e8e8] relative overflow-hidden">
+<div class="min-h-screen bg-[#0A0A2E] relative overflow-hidden">
     
-    {{-- Header/Navbar dengan gradasi --}}
-    <header class="bg-gradient-to-r from-[#4a4a6a] via-[#5a6080] to-[#6a7a9a] shadow-lg relative z-20">
-        <div class="max-w-full mx-auto py-3 sm:py-4 lg:py-5 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            {{-- Logo --}}
-            <div class="flex items-center gap-2 sm:gap-3">
-                <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="w-8 h-8 sm:w-10 sm:h-10 lg:w-12 lg:h-12">
-            </div>
+    {{-- Animated Gradient Background --}}
+    <div class="absolute inset-0 bg-gradient-to-br from-[#0A0A2E] via-[#1a1a40] to-[#0A0A2E] animate-gradient-shift"></div>
+    
+    {{-- Grid Pattern Overlay --}}
+    <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#85BBEB 1px, transparent 1px), linear-gradient(90deg, #85BBEB 1px, transparent 1px); background-size: 50px 50px;"></div>
+    
+    {{-- Animated Background Elements --}}
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="blob-interactive absolute top-0 -left-4 w-96 h-96 bg-[#85bbeb28] rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-float"></div>
+        <div class="blob-interactive absolute top-0 -right-4 w-96 h-96 bg-[#FEF9F0] rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-float-delayed"></div>
+        <div class="blob-interactive absolute -bottom-8 left-20 w-96 h-96 bg-[#85bbeb2f] rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-float-slow"></div>
+        <div class="absolute top-1/3 right-1/4 w-64 h-64 bg-[#C0C0C0] rounded-full mix-blend-screen filter blur-2xl opacity-10 animate-pulse-slow"></div>
+        <div class="absolute bottom-1/4 left-1/3 w-72 h-72 bg-[#85BBEB] rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-pulse-slower"></div>
+    </div>
 
-            {{-- Judul Tengah --}}
-            <h1 class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold bg-gradient-to-r from-[#0A0A2E] via-[#1E3A8A] to-[#3B82F6] bg-clip-text text-transparent drop-shadow-md tracking-wide">
-                Tata Kata.
-            </h1>
-
-            {{-- User Menu --}}
-            <div class="flex items-center gap-2 sm:gap-3 lg:gap-4">
-                {{-- Profile Icon dengan tooltip --}}
-                <a class="relative flex items-center group">
-                    <svg class="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 text-white group-hover:text-blue-200 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-                    </svg>
-                    <div class="absolute top-full right-0 mt-2 px-3 py-2 bg-gray-800 text-white text-xs sm:text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                        {{ Auth::user()->first_name . ' ' . Auth::user()->last_name ?? 'Profil' }}
-                        <div class="absolute -top-1 right-3 w-2 h-2 bg-gray-800 transform rotate-45"></div>
+    {{-- Navbar --}}
+    <header class="relative z-50 backdrop-blur-xl bg-[#0A0A2E]/70 border-b border-[#85BBEB]/20 shadow-lg shadow-[#85BBEB]/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
+                {{-- Logo --}}
+                <div class="flex items-center gap-3 group cursor-pointer">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
+                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
-                </a>
+                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">Tata Kata</span>
+                </div>
 
-                {{-- Logout Button --}}
-                <form method="POST" action="{{ route('logout') }}" class="relative group">
-                    @csrf
-                    <button type="submit" class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 hover:bg-white/10 rounded-full transition">
-                        <svg class="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 text-white group-hover:text-blue-200 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-                                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
-                        </svg>
-                    </button>
-                    <div class="absolute top-full right-0 mt-2 px-3 py-2 bg-gray-800 text-white text-xs sm:text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50">
-                        Keluar
-                        <div class="absolute -top-1 right-3 w-2 h-2 bg-gray-800 transform rotate-45"></div>
-                    </div>
-                </form>
+                {{-- User Menu --}}
+                <div class="flex items-center gap-4">
+                    {{-- Profile Icon dengan tooltip --}}
+                    <a class="relative flex items-center group cursor-pointer">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#85BBEB] to-[#FEF9F0] flex items-center justify-center shadow-lg shadow-[#85BBEB]/30 group-hover:scale-110 transition-all duration-300">
+                            <svg class="w-6 h-6 text-[#0A0A2E]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                            </svg>
+                        </div>
+                        <div class="absolute top-full right-0 mt-2 px-4 py-2 bg-[#1a1a40] border border-[#85BBEB]/30 text-[#FEF9F0] text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 backdrop-blur-xl">
+                            {{ Auth::user()->first_name . ' ' . Auth::user()->last_name ?? 'Profil' }}
+                            <div class="absolute -top-1 right-3 w-2 h-2 bg-[#1a1a40] border-l border-t border-[#85BBEB]/30 transform rotate-45"></div>
+                        </div>
+                    </a>
+
+                    {{-- Logout Button --}}
+                    <form method="POST" action="{{ route('logout') }}" class="relative group">
+                        @csrf
+                        <button type="submit" class="w-10 h-10 rounded-full bg-[#85BBEB]/10 border border-[#85BBEB]/30 flex items-center justify-center hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/50 transition-all duration-300 group">
+                            <svg class="w-6 h-6 text-[#85BBEB] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h6a2 2 0 012 2v1"/>
+                            </svg>
+                        </button>
+                        <div class="absolute top-full right-0 mt-2 px-4 py-2 bg-[#1a1a40] border border-[#85BBEB]/30 text-[#FEF9F0] text-sm rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-50 backdrop-blur-xl">
+                            Keluar
+                            <div class="absolute -top-1 right-3 w-2 h-2 bg-[#1a1a40] border-l border-t border-[#85BBEB]/30 transform rotate-45"></div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
     </header>
 
-    {{-- Main Container --}}
-    <div class="relative w-full min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-72px)] lg:h-[calc(100vh-88px)] bg-gradient-to-br from-[#f1f1f8] via-[#e6e8f0] to-[#d6dae8] overflow-hidden">
+    {{-- Main Content --}}
+    <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         
-        {{-- Efek glossy & Semburan Background --}}
-        <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.5)_0%,rgba(255,255,255,0)_55%)]"></div>
-        
-        {{-- Background blurs - responsive sizes --}}
-        <div class="absolute -top-24 sm:-top-36 lg:-top-48 -right-24 sm:-right-36 lg:-right-48 w-[450px] sm:w-[700px] lg:w-[900px] h-[450px] sm:h-[700px] lg:h-[900px] bg-gradient-to-br from-[#FFEAF1]/70 via-[#FFD9E0]/50 to-[#FFF4F7]/40 rounded-full blur-[120px] sm:blur-[180px] lg:blur-[220px] pointer-events-none"></div>
-        
-        <div class="absolute top-0 right-0 w-[350px] sm:w-[550px] lg:w-[700px] h-[350px] sm:h-[550px] lg:h-[700px] bg-gradient-to-tr from-[#FFD6E0]/40 via-[#FFE0EB]/35 to-[#FFF0F3]/25 rounded-full blur-[100px] sm:blur-[150px] lg:blur-[200px] pointer-events-none"></div>
-        
-        <div class="absolute -bottom-10 sm:-bottom-16 lg:-bottom-20 -left-10 sm:-left-16 lg:-left-20 w-[280px] sm:w-[420px] lg:w-[550px] h-[280px] sm:h-[420px] lg:h-[550px] bg-white/50 rounded-full blur-[80px] sm:blur-[120px] lg:blur-[150px] pointer-events-none"></div>
-        
-        <div class="absolute bottom-5 sm:bottom-8 lg:bottom-10 left-5 sm:left-8 lg:left-10 w-[220px] sm:w-[340px] lg:w-[450px] h-[220px] sm:h-[340px] lg:h-[450px] bg-white/35 rounded-full blur-[70px] sm:blur-[100px] lg:blur-[130px] pointer-events-none"></div>
-        
-        <div class="absolute -bottom-14 sm:-bottom-20 lg:-bottom-28 -right-14 sm:-right-20 lg:-right-28 w-[300px] sm:w-[460px] lg:w-[600px] h-[300px] sm:h-[460px] lg:h-[600px] bg-[#E0E7FF]/45 rounded-full blur-[90px] sm:blur-[130px] lg:blur-[160px] pointer-events-none"></div>
-        
-        <div class="absolute bottom-5 sm:bottom-8 lg:bottom-10 right-5 sm:right-8 lg:right-10 w-[220px] sm:w-[340px] lg:w-[450px] h-[220px] sm:h-[340px] lg:h-[450px] bg-[#D6E0FF]/30 rounded-full blur-[70px] sm:blur-[100px] lg:blur-[120px] pointer-events-none"></div>
-        
-        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[380px] sm:w-[580px] lg:w-[750px] h-[210px] sm:h-[320px] lg:h-[420px] bg-[#F8F9FF]/45 rounded-full blur-[90px] sm:blur-[130px] lg:blur-[170px] pointer-events-none"></div>
-        
-        {{-- Elemen Dekoratif - hidden di mobile kecil --}}
-        <div class="hidden sm:block absolute -top-6 sm:-top-10 lg:-top-12 -right-6 sm:-right-10 lg:-right-12 w-[180px] sm:w-[280px] lg:w-[350px] h-[180px] sm:h-[280px] lg:h-[350px] opacity-25 sm:opacity-30 lg:opacity-35 pointer-events-none" 
-             style="filter: brightness(1.1) saturate(0.9) contrast(1.05) drop-shadow(0 0 6px rgba(200,200,220,0.3));">
-            <img src="{{ asset('images/elemen-1.png') }}" alt="Elemen 1" class="w-full h-full object-contain">
-        </div>
-        
-        <div class="hidden sm:block absolute bottom-2 sm:bottom-3 lg:bottom-4 left-0 w-[280px] sm:w-[420px] lg:w-[550px] h-[280px] sm:h-[420px] lg:h-[550px] opacity-20 sm:opacity-25 lg:opacity-30 pointer-events-none -translate-x-4 sm:-translate-x-6 lg:-translate-x-8" 
-             style="filter: brightness(1.15) saturate(0.85) contrast(1.08) drop-shadow(0 0 10px rgba(200,200,220,0.35));">
-            <img src="{{ asset('images/elemen-2.png') }}" alt="Elemen 2" class="w-full h-full object-contain object-left-bottom">
+        {{-- Page Title --}}
+        <div class="mb-12 fade-in-up">
+            <h1 class="text-4xl lg:text-5xl font-bold text-[#FFFFFF] mb-3">
+                Selamat datang di,
+            </h1>
+            <h2 class="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-[#85BBEB] via-[#FEF9F0] to-[#85BBEB] bg-clip-text text-transparent animate-gradient-text bg-[length:200%_auto]">
+                Tata Kata.
+            </h2>
+            <p class="text-[#C0C0C0] text-lg mt-4">
+                Kelola dokumen Anda dengan mudah dan efisien
+            </p>
         </div>
 
-        {{-- Content Area --}}
-        <div class="relative z-10 h-full flex flex-col p-4 sm:p-6 md:p-8 lg:p-12">
-
-            {{-- Beranda --}}
-            <div class="mb-4 sm:mb-6 lg:mb-0 lg:absolute lg:top-8 lg:left-12">
-                <h3 class="text-lg sm:text-xl lg:text-2xl font-semibold text-[#1a1a2e]/80">Beranda</h3>
-            </div>
-            
-            {{-- Welcome Section --}}
-            <div class="mt-4 sm:mt-8 lg:mt-20 text-center mb-6 sm:mb-8 lg:mb-0">
-                <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold text-[#1a1a2e] leading-tight">
-                    Selamat datang di,<br>
-                    <span class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-[#0A0A2E] via-[#1E3A8A] to-[#3B82F6] bg-clip-text text-transparent">Tata Kata.</span>
-                </h1>
-            </div>
-
-            {{-- Cards Section --}}
-            <div class="flex flex-col sm:flex-row gap-4 sm:gap-6 lg:gap-10 justify-center items-center flex-1 py-4 sm:py-6 lg:py-0 max-w-2xl mx-auto w-full">
-                
-                {{-- Card 1: Unggah Dokumen --}}
-                <a href="{{ route('upload') }}" class="group w-full sm:w-auto max-w-sm">
-                    <div class="bg-gradient-to-br from-[#4a5a7a] via-[#556080] to-[#5a6a8a] 
-                                rounded-2xl sm:rounded-3xl lg:rounded-[2rem] p-6 sm:p-8 lg:p-12 
-                                shadow-xl hover:shadow-2xl transition-all duration-300 
-                                hover:scale-105 w-full sm:w-48 md:w-52 lg:w-64 
-                                h-44 sm:h-48 md:h-52 lg:h-64 
-                                flex flex-col items-center justify-center 
-                                text-center border-[2px] border-[#2a3a5a]">
-                        
-                        <h2 class="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-3 sm:mb-4 lg:mb-6">
-                            Unggah<br>Dokumen
-                        </h2>
-                        
-                        <img src="{{ asset('images/ikonplus.png') }}" alt="Ikon Plus" 
-                             class="w-10 h-10 sm:w-11 sm:h-11 lg:w-14 lg:h-14 mt-1 transition-transform duration-200 group-hover:scale-110">
-                    </div>
-                </a>
-
-                {{-- Card 2: Riwayat --}}
-                <a href="{{ route('history') }}" class="group w-full sm:w-auto max-w-sm">
-                    <div class="bg-gradient-to-br from-[#4a5a7a] via-[#556080] to-[#5a6a8a] 
-                                rounded-2xl sm:rounded-3xl lg:rounded-[2rem] p-6 sm:p-8 lg:p-12 
-                                shadow-xl hover:shadow-2xl transition-all duration-300 
-                                hover:scale-105 w-full sm:w-48 md:w-52 lg:w-64 
-                                h-44 sm:h-48 md:h-52 lg:h-64 
-                                flex flex-col items-center justify-center 
-                                text-center border-[2px] border-[#2a3a5a]">
-                        
-                        <h2 class="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-3 sm:mb-4 lg:mb-6">
-                            Riwayat
-                        </h2>
-
-                        <img src="{{ asset('images/ikonriwayat.png') }}" alt="Ikon Riwayat" 
-                             class="w-10 h-10 sm:w-11 sm:h-11 lg:w-14 lg:h-14 mt-1 transition-transform duration-200 group-hover:scale-110">
-                    </div>
-                </a>
-            </div>
-
-            {{-- Success Message --}}
-            @if(session('success'))
-            <div class="mt-4 sm:mt-6 lg:mt-8">
-                <div class="bg-green-100 border-2 border-green-400 text-green-700 px-4 sm:px-5 lg:px-6 py-3 sm:py-3.5 lg:py-4 rounded-lg sm:rounded-xl text-sm sm:text-base shadow-md">
-                    {{ session('success') }}
+        {{-- Success Message --}}
+        @if(session('success'))
+        <div class="mb-8 fade-in-up">
+            <div class="relative">
+                <div class="absolute inset-0 bg-green-500/20 rounded-2xl blur-xl"></div>
+                <div class="relative bg-gradient-to-br from-green-500/10 via-[#0A0A2E]/50 to-[#0A0A2E]/80 backdrop-blur-xl border border-green-500/30 text-green-400 px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3">
+                    <svg class="w-6 h-6 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span>{{ session('success') }}</span>
                 </div>
             </div>
-            @endif
+        </div>
+        @endif
+
+        {{-- Action Cards --}}
+        <div class="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            
+            {{-- Card 1: Unggah Dokumen --}}
+            <a href="{{ route('upload') }}" class="group fade-in-up" style="animation-delay: 0.1s;">
+                <div class="relative h-full">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#85BBEB]/30 to-transparent rounded-3xl blur-2xl opacity-0 group-hover:opacity-60 transition-all duration-500"></div>
+                    <div class="absolute -inset-0.5 bg-gradient-to-r from-[#85BBEB] to-[#FEF9F0] rounded-3xl opacity-0 group-hover:opacity-20 blur transition-all duration-500"></div>
+                    <div class="relative bg-gradient-to-br from-[#FEF9F0]/10 via-[#0A0A2E]/50 to-[#0A0A2E]/80 backdrop-blur-xl rounded-3xl p-10 border border-[#85BBEB]/30 hover:border-[#85BBEB]/60 transition-all duration-500 h-full group-hover:translate-y-[-8px] shadow-xl hover:shadow-2xl hover:shadow-[#85BBEB]/30">
+                        
+                        <div class="flex flex-col items-center text-center space-y-6">
+                            {{-- Icon --}}
+                            <div class="relative">
+                                <div class="absolute inset-0 bg-[#85BBEB] rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
+                                <div class="relative w-20 h-20 bg-gradient-to-br from-[#85BBEB] to-[#85BBEB]/70 rounded-2xl flex items-center justify-center shadow-2xl shadow-[#85BBEB]/50 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                    <img src="{{ asset('images/ikonplus.png') }}" alt="Ikon Plus" class="w-10 h-10">
+                                </div>
+                            </div>
+
+                            {{-- Title --}}
+                            <div>
+                                <h3 class="text-2xl font-bold text-[#FFFFFF] mb-2 group-hover:text-[#85BBEB] transition-colors duration-300">
+                                    Unggah Dokumen
+                                </h3>
+                                <p class="text-[#C0C0C0] leading-relaxed">
+                                    Upload dokumen baru untuk dianalisis dan diperiksa tata bahasanya
+                                </p>
+                            </div>
+
+                            {{-- Arrow Indicator --}}
+                            <div class="flex items-center gap-2 text-[#85BBEB] font-medium pt-2">
+                                <span>Mulai Sekarang</span>
+                                <svg class="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        {{-- Bottom Border Effect --}}
+                        <div class="mt-6 h-1 w-0 group-hover:w-full bg-gradient-to-r from-[#85BBEB] to-transparent transition-all duration-500 rounded-full"></div>
+                    </div>
+                </div>
+            </a>
+
+            {{-- Card 2: Riwayat --}}
+            <a href="{{ route('history') }}" class="group fade-in-up" style="animation-delay: 0.2s;">
+                <div class="relative h-full">
+                    <div class="absolute inset-0 bg-gradient-to-br from-[#FEF9F0]/30 to-transparent rounded-3xl blur-2xl opacity-0 group-hover:opacity-60 transition-all duration-500"></div>
+                    <div class="absolute -inset-0.5 bg-gradient-to-r from-[#FEF9F0] to-[#85BBEB] rounded-3xl opacity-0 group-hover:opacity-20 blur transition-all duration-500"></div>
+                    <div class="relative bg-gradient-to-br from-[#85BBEB]/10 via-[#0A0A2E]/50 to-[#0A0A2E]/80 backdrop-blur-xl rounded-3xl p-10 border border-[#85BBEB]/30 hover:border-[#85BBEB]/60 transition-all duration-500 h-full group-hover:translate-y-[-8px] shadow-xl hover:shadow-2xl hover:shadow-[#FEF9F0]/20">
+                        
+                        <div class="flex flex-col items-center text-center space-y-6">
+                            {{-- Icon --}}
+                            <div class="relative">
+                                <div class="absolute inset-0 bg-[#FEF9F0] rounded-2xl blur-xl opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
+                                <div class="relative w-20 h-20 bg-gradient-to-br from-[#FEF9F0] to-[#85BBEB] rounded-2xl flex items-center justify-center shadow-2xl shadow-[#FEF9F0]/30 group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                                    <img src="{{ asset('images/ikonriwayat.png') }}" alt="Ikon Riwayat" class="w-10 h-10">
+                                </div>
+                            </div>
+
+                            {{-- Title --}}
+                            <div>
+                                <h3 class="text-2xl font-bold text-[#FFFFFF] mb-2 group-hover:text-[#FEF9F0] transition-colors duration-300">
+                                    Riwayat
+                                </h3>
+                                <p class="text-[#C0C0C0] leading-relaxed">
+                                    Lihat semua dokumen yang telah Anda unggah dan proses sebelumnya
+                                </p>
+                            </div>
+
+                            {{-- Arrow Indicator --}}
+                            <div class="flex items-center gap-2 text-[#FEF9F0] font-medium pt-2">
+                                <span>Lihat Riwayat</span>
+                                <svg class="w-5 h-5 group-hover:translate-x-2 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+                                </svg>
+                            </div>
+                        </div>
+
+                        {{-- Bottom Border Effect --}}
+                        <div class="mt-6 h-1 w-0 group-hover:w-full bg-gradient-to-r from-[#FEF9F0] to-transparent transition-all duration-500 rounded-full"></div>
+                    </div>
+                </div>
+            </a>
 
         </div>
+
+        {{-- Info Section --}}
+        <div class="mt-16 fade-in-up" style="animation-delay: 0.3s;">
+            <div class="relative">
+                <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/20 via-[#FEF9F0]/10 to-[#85BBEB]/20 rounded-3xl blur-2xl"></div>
+                <div class="relative bg-gradient-to-br from-[#FEF9F0]/5 via-[#0A0A2E]/50 to-[#85BBEB]/5 backdrop-blur-xl rounded-3xl p-8 border border-[#85BBEB]/20">
+                    <div class="grid md:grid-cols-3 gap-6 text-center">
+                        <div class="space-y-2">
+                            <div class="text-3xl font-bold bg-gradient-to-r from-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent">
+                                100%
+                            </div>
+                            <div class="text-[#C0C0C0]">Gratis</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-3xl font-bold bg-gradient-to-r from-[#FEF9F0] to-[#85BBEB] bg-clip-text text-transparent">
+                                AI
+                            </div>
+                            <div class="text-[#C0C0C0]">Powered</div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-3xl font-bold bg-gradient-to-r from-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent">
+                                Aman
+                            </div>
+                            <div class="text-[#C0C0C0]">& Privat</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
+
+<style>
+/* Gradient Animation */
+@keyframes gradient-shift {
+    0%, 100% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+}
+
+.animate-gradient-shift {
+    background-size: 200% 200%;
+    animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-text {
+    0%, 100% {
+        background-position: 0% center;
+    }
+    50% {
+        background-position: 100% center;
+    }
+}
+
+.animate-gradient-text {
+    animation: gradient-text 3s linear infinite;
+}
+
+/* Float Animations */
+@keyframes float {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(30px, -30px) scale(1.05);
+    }
+    66% {
+        transform: translate(-20px, 20px) scale(0.95);
+    }
+}
+
+@keyframes float-delayed {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    33% {
+        transform: translate(-40px, 30px) scale(1.1);
+    }
+    66% {
+        transform: translate(30px, -20px) scale(0.9);
+    }
+}
+
+@keyframes float-slow {
+    0%, 100% {
+        transform: translate(0, 0) scale(1);
+    }
+    50% {
+        transform: translate(20px, -40px) scale(1.05);
+    }
+}
+
+.animate-float {
+    animation: float 8s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+    animation: float-delayed 10s ease-in-out infinite;
+}
+
+.animate-float-slow {
+    animation: float-slow 12s ease-in-out infinite;
+}
+
+/* Pulse Animations */
+@keyframes pulse-slow {
+    0%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(1.05);
+    }
+}
+
+@keyframes pulse-slower {
+    0%, 100% {
+        opacity: 0.2;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.4;
+        transform: scale(1.1);
+    }
+}
+
+@keyframes pulse-subtle {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.animate-pulse-slow {
+    animation: pulse-slow 4s ease-in-out infinite;
+}
+
+.animate-pulse-slower {
+    animation: pulse-slower 6s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+    animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Scroll Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    opacity: 0;
+    transform: translateY(30px);
+}
+
+.fade-in-up.visible {
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+
+/* Interactive Blob */
+.blob-interactive {
+    will-change: transform;
+    transition: transform 0.15s ease-out;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Scroll Animation Observer
+    const observerOptions = {
+        threshold: 0.1,
+        rootMargin: '0px 0px -50px 0px'
+    };
+
+    const observer = new IntersectionObserver(function(entries) {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('visible');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.fade-in-up').forEach(el => {
+        observer.observe(el);
+    });
+
+    // Interactive Background with Mouse
+    const blobs = document.querySelectorAll('.blob-interactive');
+    
+    if (blobs.length > 0) {
+        document.addEventListener('mousemove', function(e) {
+            const mouseX = e.clientX;
+            const mouseY = e.clientY;
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            
+            blobs.forEach((blob, index) => {
+                const speed = (index + 1) * 20;
+                const moveX = ((mouseX / windowWidth) - 0.5) * speed;
+                const moveY = ((mouseY / windowHeight) - 0.5) * speed;
+                
+                blob.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            });
+        });
+    }
+});
+</script>
+
 @endsection
