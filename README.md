@@ -46,22 +46,20 @@ Website TataKata dirancang agar mudah digunakan oleh seluruh pengguna yang terli
    ```
    php artisan migrate:fresh
    ```
-   
-5. Jalankan command terlampir untuk menyimpan dokumen
+
+5. Jalankan command terlampir pada terminal 1 untuk compile aset frontend
    ```
-   php artisan storage:link
+   php artisan serve
    ```
    
-6. Sediakan 2 terminal untuk run program.
-   
-7. Jalankan command terlampir pada terminal 1 untuk compile aset frontend
+6. Jalankan command terlampir pada terminal 2 untuk mengakses program backend di browser dan AI processing
+   ```
+   sh docker/entrypoints/run-all-workers.sh
+   ```
+
+7. Jika frontend tidak tampil/jalan, jalankan command terlampir pada terminal 3
    ```
    npm run dev
-   ```
-   
-8. Jalankan command terlampir pada terminal 2 untuk mengakses program backend di browser dan AI processing
-   ```
-   php artisan serve && php artisan queue:work --tries=3 --timeout=300
    ```
 
 ## Repositori Lama
