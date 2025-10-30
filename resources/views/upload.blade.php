@@ -487,27 +487,36 @@ function updateFileName(input) {
     if (input.files && input.files[0]) {
         const file = input.files[0];
         const fileName = file.name;
-        
-        // Update file name display
+
+        // Validasi ekstensi file
+        const allowedExtensions = ['pdf', 'doc', 'docx', 'txt'];
+        const fileExtension = fileName.split('.').pop().toLowerCase();
+
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert("❌ Format file tidak diizinkan!\nHarap upload file dengan format: PDF, DOC, atau DOCX.");
+            input.value = ''; // reset input
+            return; // hentikan fungsi (file tidak diterima)
+        }
+
+        // Kalau format benar → tampilkan nama file
         fileNameDisplay.textContent = fileName;
-        
-        // Show success state, hide default
+
+        // Ubah tampilan jadi "file berhasil dipilih"
         defaultState.classList.add('hidden');
         successState.classList.remove('hidden');
-        
-        // Add animation
         successState.classList.add('animate-fadeIn');
-        
-        // Remove animation class after completion
+
+        // Hilangkan animasi setelah selesai
         setTimeout(() => {
             successState.classList.remove('animate-fadeIn');
         }, 300);
     } else {
-        // Reset to default state
+        // Jika user batal pilih file → kembalikan ke default
         defaultState.classList.remove('hidden');
         successState.classList.add('hidden');
     }
 }
+
 
 // Drag and Drop Enhancement
 const uploadArea = document.querySelector('[id="document"]').parentElement;
@@ -546,6 +555,7 @@ function handleDrop(e) {
     fileInput.files = files;
     updateFileName(fileInput);
 }
+
 </script>
 
 @endsection

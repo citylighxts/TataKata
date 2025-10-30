@@ -205,11 +205,19 @@
                                 <div class="space-y-2">
                                     <label for="password" class="block text-sm font-semibold text-[#FEF9F0]">
                                         Kata Sandi
-                                    </label>
+                                        </label>
                                     <div class="relative group">
                                         <input id="password" type="password" name="password" required
-                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm">
+                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm pr-12">
                                         <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                        <button type="button" id="togglePassword" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#85BBEB] hover:text-[#FEF9F0] focus:outline-none">
+                                            <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
 
@@ -220,8 +228,16 @@
                                     </label>
                                     <div class="relative group">
                                         <input id="password_confirmation" type="password" name="password_confirmation" required
-                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm">
-                                        <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm pr-12">
+                                            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                        <button type="button" id="toggleConfirmPassword" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#85BBEB] hover:text-[#FEF9F0] focus:outline-none">
+                                            <svg id="eyeIconConfirm" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
 
@@ -458,5 +474,58 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+    document.addEventListener('DOMContentLoaded', function () {
+    function setEyeIcon(iconEl, isShown) {
+        // isShown === true  -> password sedang "ditampilkan" (text)
+        // isShown === false -> password "disembunyikan" (password)
+        if (!iconEl) return;
+        if (isShown) {
+        iconEl.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
+            <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" />`;
+        } else {
+        iconEl.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
+            <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />`;
+        }
+    }
+
+    // password utama
+    const passwordField = document.getElementById('password');
+    const togglePassword = document.getElementById('togglePassword');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    // confirm password
+    const confirmField = document.getElementById('password_confirmation');
+    const toggleConfirm = document.getElementById('toggleConfirmPassword');
+    const eyeIconConfirm = document.getElementById('eyeIconConfirm');
+
+    // Set ikon awal sesuai state input
+    if (eyeIcon && passwordField) setEyeIcon(eyeIcon, passwordField.type === 'text');
+    if (eyeIconConfirm && confirmField) setEyeIcon(eyeIconConfirm, confirmField.type === 'text');
+
+    // Toggle utama
+    if (togglePassword && passwordField && eyeIcon) {
+        togglePassword.addEventListener('click', function () {
+        const willShow = passwordField.type === 'password'; // kalau sekarang password -> akan show
+        passwordField.type = willShow ? 'text' : 'password';
+        setEyeIcon(eyeIcon, willShow);
+        });
+    }
+
+    // Toggle confirm
+    if (toggleConfirm && confirmField && eyeIconConfirm) {
+        toggleConfirm.addEventListener('click', function () {
+        const willShow = confirmField.type === 'password';
+        confirmField.type = willShow ? 'text' : 'password';
+        setEyeIcon(eyeIconConfirm, willShow);
+        });
+    }
+    });
+
 </script>
 @endsection

@@ -175,11 +175,24 @@
                                     </label>
                                     <div class="relative group">
                                         <input id="password" type="password" name="password" required
-                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm"
-                                            placeholder="••••••••">
+                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm pr-10">
                                         <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+
+                                            {{-- Tombol Show/Hide Password --}}
+                                            <button type="button" id="togglePassword"
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-[#85BBEB] hover:text-[#FEF9F0] transition-colors duration-300 focus:outline-none">
+                                                <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none"
+                                                viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                                <!-- Ikon mata default (tertutup) -->
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                        </button>
                                     </div>
                                 </div>
+
 
                                 {{-- Remember Me & Forgot Password --}}
                                 <div class="flex items-center justify-between">
@@ -429,5 +442,35 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+    // Toggle show/hide password
+    const togglePassword = document.getElementById('togglePassword');
+    const passwordInput = document.getElementById('password');
+    const eyeIcon = document.getElementById('eyeIcon');
+
+    if (togglePassword && passwordInput && eyeIcon) {
+        togglePassword.addEventListener('click', function () {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+
+            // ikon mata
+            if (type === 'text') {
+                // Mata terbuka (lihat password)
+                eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
+                    <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" />
+                `;
+            } else {
+                // Mata tertutup (disembunyikan)
+                eyeIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                        d="M3 3l18 18M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
+                    <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" />
+                `;
+            }
+        });
+    }
+
 </script>
 @endsection

@@ -22,29 +22,39 @@
 
     {{-- Navbar --}}
     <header class="relative z-50 backdrop-blur-xl bg-[#0A0A2E]/70 border-b border-[#85BBEB]/20 shadow-lg shadow-[#85BBEB]/5">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center gap-3 group cursor-pointer">
-                    <div class="relative">
-                        <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
-                    </div>
-                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">Tata Kata</span>
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-4 relative">
+            <div class="flex justify-between items-center w-full">
+
+            {{-- Logo --}}
+            <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer">
+                <div class="relative">
+                    <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
+                    <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                 </div>
-                <div class="flex gap-3">
-                    <a href="{{ route('login') }}" class="px-6 py-2.5 border-2 border-[#85BBEB]/40 text-[#FEF9F0] rounded-full hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/60 hover:shadow-lg hover:shadow-[#85BBEB]/30 transition-all duration-300 font-medium backdrop-blur-sm relative overflow-hidden group">
-                        <span class="relative z-10">Masuk</span>
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/20 to-[#85BBEB]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                    </a>
-                    <a href="{{ route('register') }}" class="px-6 py-2.5 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-medium relative overflow-hidden group">
-                        <span class="relative z-10 font-semibold">Daftar</span>
-                        <div class="absolute inset-0 bg-gradient-to-r from-[#FEF9F0]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    </a>
-                </div>
+            </a>
+
+            {{-- Tata Kata --}}
+            <div class="absolute left-1/2 transform -translate-x-1/2">
+                <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">
+                    Tata Kata
+                </span>
             </div>
+
+            {{-- Tombol Masuk & Daftar --}}
+            <div class="flex gap-3 ml-auto">
+                <a href="{{ route('login') }}" class="px-6 py-2.5 border-2 border-[#85BBEB]/40 text-[#FEF9F0] rounded-full hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/60 hover:shadow-lg hover:shadow-[#85BBEB]/30 transition-all duration-300 font-medium backdrop-blur-sm relative overflow-hidden group">
+                    <span class="relative z-10">Masuk</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/20 to-[#85BBEB]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                </a>
+                <a href="{{ route('register') }}" class="px-6 py-2.5 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-medium relative overflow-hidden group">
+                    <span class="relative z-10 font-semibold">Daftar</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#FEF9F0]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                </a>
+            </div>
+
         </div>
-    </header>
+    </div>
+</header>
 
     {{-- Hero Section --}}
     <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
