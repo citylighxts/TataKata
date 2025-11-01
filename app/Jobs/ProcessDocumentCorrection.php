@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Jobs;
-
 use App\Models\Document;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -12,12 +10,10 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Smalot\PdfParser\Parser;
 use Illuminate\Support\Facades\Cache;
-// use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Http as HttpFacade;
-
 
 class ProcessDocumentCorrection implements ShouldQueue
 {
@@ -39,7 +35,6 @@ class ProcessDocumentCorrection implements ShouldQueue
             Log::warning("Document ID {$this->documentId} no longer exists; aborting job.");
             return;
         }
-
         $this->pushProgress($document, 'Memulai pemrosesan dokumen...', 'Processing');
 
         $tempFile = null;
@@ -118,21 +113,35 @@ class ProcessDocumentCorrection implements ShouldQueue
                 return;
             }
 
-            // ... (Logika logging PDF extraction & cleaning text tetap sama) ...
             $clean_text = mb_convert_encoding($original_text, 'UTF-8', 'UTF-8');
             $clean_text = preg_replace('/[[:cntrl:]]/', '', $clean_text);
             $original_text = $clean_text;
             
             $this->pushProgress($document, 'Mempersiapkan dokumen untuk dikoreksi...');
 
-            // Memanggil method 'correctTextWithGemini' yang sudah disederhanakan
             $corrected_text = $this->correctTextWithGemini($original_text);
 
             if (str_starts_with($corrected_text, 'ERROR:')) {
                 throw new \Exception($corrected_text);
             }
 
-            // ... (Logika menyimpan hasil & update status 'Completed' tetap sama) ...
+            // Validasi hasil tidak kosong dan cukup panjang
+            if (empty($corrected_text) || mb_strlen($corrected_text, 'UTF-8') < 100) {
+                throw new \Exception('Hasil koreksi terlalu pendek atau kosong');
+            }
+
+            // Cek apakah hasil terpotong (kurang dari 60% text original)
+            $originalLen = mb_strlen($original_text, 'UTF-8');
+            $correctedLen = mb_strlen($corrected_text, 'UTF-8');
+            if ($correctedLen < ($originalLen * 0.6)) {
+                Log::warning("Corrected text suspiciously short", [
+                    'document_id' => $document->id,
+                    'original' => $originalLen,
+                    'corrected' => $correctedLen,
+                    'ratio' => round(($correctedLen / $originalLen) * 100, 2) . '%'
+                ]);
+            }
+
             $document->original_text = $original_text;
             $document->corrected_text = $corrected_text;
             $document->upload_status = 'Completed';
@@ -157,116 +166,214 @@ class ProcessDocumentCorrection implements ShouldQueue
 
     private function correctTextWithGemini($text)
     {
-        // Start timing for diagnostics
         $jobStart = microtime(true);
 
         try {
-            // Cache check untuk seluruh teks
             $cacheKey = 'doc_correction_' . sha1($text);
             if (Cache::has($cacheKey)) {
-                Log::info("Document correction cache hit for full document (key={$cacheKey}). Returning cached result.");
+                Log::info("Document correction cache hit");
                 return Cache::get($cacheKey);
             }
 
-            // Ambil info API
             $apiKey = env('GOOGLE_API_KEY');
-            $modelName = 'gemini-2.5-flash'; // Pastikan nama model ini benar
+            $modelName = 'gemini-2.5-flash';
             $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $apiKey;
-
-            // Timeout panjang (10 menit) untuk 1 request besar
-            $timeoutDuration = 600; 
+            $timeoutDuration = 600;
 
             $textLen = mb_strlen($text, 'UTF-8');
-            Log::info("Processing document correction: length={$textLen} chars, 1 chunk (full text)", [
-                'document_id' => $this->documentId,
-                'text_length' => $textLen,
-            ]);
+            Log::info("Processing document correction: length={$textLen} chars");
 
-            // Update progress di UI
             $document = Document::find($this->documentId);
-            if (! $document) {
-                Log::warning("Document ID {$this->documentId} not found when updating progress; aborting.");
+            if (!$document) {
                 return "ERROR: Document not found.";
             }
-            $this->pushProgress($document, "Mengoreksi seluruh dokumen (1 bagian)...");
 
-            // Buat 1 payload untuk seluruh teks
+            // PROMPT SEDERHANA - fokus ke koreksi saja
+            $prompt = "Koreksi tata bahasa dan ejaan bahasa Indonesia berikut. Jangan ubah struktur atau makna. Berikan hanya hasil koreksi:\n\n" . $text;
+
             $payload = [
                 'contents' => [
                     [
                         'parts' => [
-                            ['text' => "Perbaiki tata bahasa dan ejaan dalam bahasa Indonesia tanpa mengubah makna berikut. Jangan ubah format tata letak teksnya. Berikan dalam bentuk teks saja, dan hanya berikan teks hasilnya.\n\n" . $text]
+                            ['text' => $prompt]
                         ]
                     ]
                 ]
             ];
 
-            // Kirim 1 request HTTP
+            $this->pushProgress($document, "Mengoreksi dokumen...");
             $response = Http::withOptions(['timeout' => $timeoutDuration])->post($url, $payload);
 
-            // Handle jika request gagal
-            if (! $response->successful()) {
+            if (!$response->successful()) {
                 $status = method_exists($response, 'status') ? $response->status() : 'unknown';
                 $errorBody = $response->body();
-                Log::error("Gemini HTTP Error (Full Text): status={$status} body=" . substr($errorBody, 0, 500));
+                Log::error("Gemini HTTP Error: status={$status}");
                 
-                // Cek error spesifik jika teks terlalu besar
-                if (str_contains($errorBody, '400 Bad Request') || str_contains($errorBody, 'too large') || str_contains($errorBody, 'REQUEST_TOO_LARGE')) {
+                if (str_contains($errorBody, 'too large') || str_contains($errorBody, 'REQUEST_TOO_LARGE')) {
                     return "ERROR: Teks terlalu besar untuk diproses sekaligus.";
                 }
                 
                 return "ERROR: Gagal menghubungi API (Status: {$status})";
             }
 
-            // Ekstrak hasil dari 1 response
             $extracted = null;
             try {
                 $json = $response->json();
-                Log::info("Gemini response JSON (Full Text)", [
-                    'document_id' => $this->documentId,
-                    'has_candidates' => isset($json['candidates']),
-                ]);
-                
                 if (!empty($json['candidates'][0]['content']['parts'][0]['text'])) {
                     $extracted = $json['candidates'][0]['content']['parts'][0]['text'];
-                    Log::info("Extracted via candidates[0].content.parts[0].text (Full Text)");
                 }
-
             } catch (\Throwable $jsonErr) {
-                Log::error("JSON parsing failed (Full Text): " . $jsonErr->getMessage());
+                Log::error("JSON parsing failed: " . $jsonErr->getMessage());
                 return "ERROR: Gagal membaca balasan dari API.";
             }
 
             if (empty($extracted)) {
-                Log::warning("No text extracted from JSON (Full Text)");
                 return "ERROR: API tidak memberikan hasil koreksi.";
             }
 
             $result = trim($extracted);
 
-            // Cache hasil lengkapnya
+            // Validasi panjang
+            $originalLength = mb_strlen($text, 'UTF-8');
+            $resultLength = mb_strlen($result, 'UTF-8');
+            $percentageComplete = ($resultLength / $originalLength) * 100;
+
+            Log::info("Correction check", [
+                'original' => $originalLength,
+                'result' => $resultLength,
+                'percentage' => round($percentageComplete, 2)
+            ]);
+
+            if ($percentageComplete < 60) {
+                return "ERROR: Hasil tidak lengkap (hanya " . round($percentageComplete) . "%). Dokumen terlalu besar.";
+            }
+
+            // FORMATTING AGRESIF - SELALU dijalankan
+            $this->pushProgress($document, "Memformat hasil...");
+            $result = $this->formatCorrectedText($result);
+
             Cache::put($cacheKey, $result, now()->addDays(7));
 
             $totalTook = round(microtime(true) - $jobStart, 3);
-            Log::info("Document correction finished (Full Text): total_time={$totalTook}s");
+            Log::info("Correction finished: {$totalTook}s");
 
             return $result;
 
         } catch (\Exception $e) {
-            Log::error('Gemini Request Exception (Job): ' . $e->getMessage());
+            Log::error('Gemini Exception: ' . $e->getMessage());
             return "ERROR: " . $e->getMessage();
         }
     }
 
-    // private function sendChunkWithRetries(string $url, string $text, int $timeoutDuration)
-    // {
-    //     return new class {
-    //         public function successful() { return false; }
-    //         public function status() { return 0; }
-    //         public function body() { return 'no-response'; }
-    //         public function json() { return []; }
-    //     };
-    // }
+    private function formatCorrectedText($text)
+    {
+        Log::info("Starting aggressive formatting v2");
+        
+        // Step 1: Bersihkan whitespace berlebih
+        $text = preg_replace('/[ \t]+/', ' ', $text);
+        $text = preg_replace('/\n+/', ' ', $text);
+        $text = trim($text);
+        
+        // Step 2: Deteksi MAJOR HEADINGS (ALL CAPS dengan kata 2+)
+        $text = preg_replace('/\b([A-Z][A-Z\s]{8,})\b/', "\n\n\n$1\n\n", $text);
+        
+        // Step 3: Deteksi numbered sections yang SANGAT SPESIFIK
+        // Format: "4.2.3 Judul Bagian"
+        $text = preg_replace('/(\d+\.\d+(?:\.\d+)?)\s+([A-Z][^\n.]{5,50})/', "\n\n$1 $2\n", $text);
+        
+        // Step 4: Deteksi list SEBELUM split kalimat
+        // Numbered list dengan berbagai format
+        $text = preg_replace('/\s+(\d+)\.\s+([A-Z])/u', "\n$1. $2", $text); // "1. Abc"
+        $text = preg_replace('/\s+(\d+)\)\s+([A-Z])/u', "\n$1) $2", $text); // "1) Abc"
+        $text = preg_replace('/\s+([a-z])\.\s+/u', "\n$1. ", $text); // "a. "
+        $text = preg_replace('/\s+([a-z])\)\s+/u', "\n$1) ", $text); // "a) "
+        
+        // Bullet points
+        $text = preg_replace('/\s*[•\-\*]\s+/u', "\n• ", $text);
+        
+        // Step 5: Split per LINE (karena sudah ada \n dari step 3-4)
+        $lines = explode("\n", $text);
+        $formatted = '';
+        $paragraphSentences = 0;
+        $inList = false;
+        
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (empty($line)) continue;
+            
+            // Deteksi apakah line ini adalah list item
+            $isBullet = preg_match('/^[•\-\*]/', $line);
+            $isNumberedList = preg_match('/^(\d+[\.\)]|[a-z][\.\)])\s/', $line);
+            $isListItem = $isBullet || $isNumberedList;
+            
+            // Deteksi heading
+            $upperCount = preg_match_all('/[A-Z]/', $line);
+            $totalLetters = preg_match_all('/[a-zA-Z]/', $line);
+            $isHeading = ($totalLetters > 5 && ($upperCount / $totalLetters) > 0.7) || 
+                        preg_match('/^\d+\.\d+/', $line); // Section number
+            
+            if ($isListItem) {
+                // List item - beri spacing jika baru mulai list
+                if (!$inList && $paragraphSentences > 0) {
+                    $formatted .= "\n"; // Extra space sebelum list dimulai
+                }
+                $formatted .= $line . "\n";
+                $inList = true;
+                $paragraphSentences = 0;
+            } elseif ($isHeading) {
+                // Heading
+                if ($inList) {
+                    $formatted .= "\n"; // Extra space setelah list selesai
+                }
+                $formatted .= "\n" . $line . "\n\n";
+                $inList = false;
+                $paragraphSentences = 0;
+            } else {
+                // Kalimat biasa
+                if ($inList) {
+                    $formatted .= "\n"; // Extra space setelah list selesai
+                    $inList = false;
+                }
+                
+                // Split per kalimat
+                $sentences = preg_split('/(?<=[.!?])\s+(?=[A-Z])/u', $line, -1, PREG_SPLIT_NO_EMPTY);
+                
+                foreach ($sentences as $sentence) {
+                    $sentence = trim($sentence);
+                    if (empty($sentence)) continue;
+                    
+                    $formatted .= $sentence . "\n";
+                    $paragraphSentences++;
+                    
+                    // Paragraf baru setiap 3 kalimat
+                    if ($paragraphSentences >= 3) {
+                        $formatted .= "\n";
+                        $paragraphSentences = 0;
+                    }
+                }
+            }
+        }
+        
+        // Step 6: Cleanup final
+        // Hilangkan 3+ newlines jadi max 2
+        $formatted = preg_replace('/\n{3,}/', "\n\n", $formatted);
+        
+        // Trim lines
+        $lines = explode("\n", $formatted);
+        $lines = array_map('trim', $lines);
+        $formatted = implode("\n", $lines);
+        
+        $formatted = trim($formatted);
+        
+        Log::info("Formatting complete v2", [
+            'line_breaks' => substr_count($formatted, "\n"),
+            'paragraphs' => substr_count($formatted, "\n\n"),
+            'bullets' => substr_count($formatted, "\n•"),
+            'numbered' => preg_match_all('/\n\d+\.\s/', $formatted)
+        ]);
+        
+        return $formatted;
+    }
 
     private function pushProgress(Document $document, string $message, string $status = null)
     {
@@ -275,7 +382,6 @@ class ProcessDocumentCorrection implements ShouldQueue
             if (!is_array($log)) $log = [];
             $entry = ['ts' => now()->toDateTimeString(), 'message' => $message];
             $log[] = $entry;
-            // keep last 50 entries only
             if (count($log) > 50) $log = array_slice($log, -50);
 
             $update = ['progress_log' => $log, 'details' => $message];

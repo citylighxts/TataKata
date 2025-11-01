@@ -156,29 +156,25 @@ class DocumentController extends Controller
     public function download($id)
     {
     $document = Document::findOrFail($id);
-
     if ($document->user_id !== Auth::id()) {
         abort(403, 'Anda tidak memiliki akses ke koreksi ini.');
     }
 
-    $correctedText = $document->corrected_text;
-    if (empty($correctedText)) {
+    if (empty($document->corrected_text)) {
         return back()->with('error', 'Hasil koreksi belum tersedia.');
     }
 
-    // Markdown → HTML
-    $htmlBody = Str::markdown($correctedText);
+    // Render Blade HTML (versi khusus untuk PDF)
+    $html = view('pdf.correction', [
+        'title'          => $document->file_name,
+        'corrected_text' => $document->corrected_text,
+        'original_text'  => $document->original_text,
+    ])->render();
 
-    // Nama file PDF
-    $safeFileName = Str::slug($document->file_name);
-    $timestamp = now()->format('Ymd-His');
-    $filename = "koreksi-{$safeFileName}-{$timestamp}.pdf";
+    // Buat PDF dari HTML Blade
+    $pdf = Pdf::loadHTML($html)->setPaper('a4');
 
-    // Render PDF dari Blade
-    $pdf = Pdf::loadView('pdf.correction', [
-        'title' => $document->file_name,
-        'html'  => $htmlBody,
-    ])->setPaper('a4'); // bisa ganti 'letter' dll.
+    $filename = 'koreksi-'.Str::slug($document->file_name).'-'.now()->format('Ymd-His').'.pdf';
 
     return $pdf->download($filename);
     }
