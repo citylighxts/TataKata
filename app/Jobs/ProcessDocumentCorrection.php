@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Smalot\PdfParser\Parser;
 use Illuminate\Support\Facades\Cache;
-// use Illuminate\Http\Client\Pool;
+use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
@@ -34,14 +34,33 @@ class ProcessDocumentCorrection implements ShouldQueue
 
     public function handle()
     {
+        // Always operate on the live DB record (in case it was deleted while queued)
         $document = Document::find($this->documentId);
         if (! $document) {
             Log::warning("Document ID {$this->documentId} no longer exists; aborting job.");
             return;
         }
 
+        // mark started (helps the UI know processing began and provides initial details)
         $this->pushProgress($document, 'Memulai pemrosesan dokumen...', 'Processing');
 
+        // Resolve file location using the configured filesystem disk. In deployments like Railway
+        // the app and worker don't share local disk, so we must support remote disks (s3) by
+        // streaming the file to a temporary local path for processing.
+        $fileLocation = $document->file_location;
+
+        // Determine which disk actually contains the file. We try these in order:
+        // 1. If the document record stores a disk (future-proof), try that.
+        // 2. Iterate configured disks and pick the first one where the file exists.
+        // 3. Fall back to the default disk.
+        // For this deployment the worker should always fetch the original file from
+        // the web server via a temporary signed URL rather than probing local
+        // filesystem disks. This avoids cross-container filesystem assumptions.
+        $disk = config('filesystems.default') ?: 'public';
+        Log::info("Worker will fetch original via signed URL for Document ID {$document->id}");
+
+        // Helper: stream the remote file into a temp file so downstream parsing
+        // always operates on a local path. Caller must unlink the temp file when done.
         $tempFile = null;
         try {
             $tempFile = tempnam(sys_get_temp_dir(), 'doc_');
@@ -51,11 +70,24 @@ class ProcessDocumentCorrection implements ShouldQueue
                 'document_id' => $document->id,
                 'signed_url' => $signedUrl,
                 'app_url' => config('app.url'),
+                'route_name' => 'correction.original',
+                'expires_at' => now()->addMinutes(10)->timestamp
             ]);
             
             $response = HttpFacade::withOptions(['timeout' => 60, 'sink' => $tempFile])->get($signedUrl);
 
             $status = method_exists($response, 'status') ? $response->status() : null;
+            $contentType = $response->header('Content-Type');
+            $contentLength = $response->header('Content-Length');
+            
+            Log::info('Fallback download response', [
+                'document_id' => $document->id,
+                'status' => $status,
+                'content_type' => $contentType,
+                'content_length' => $contentLength,
+                'temp_file_size' => file_exists($tempFile) ? filesize($tempFile) : 0
+            ]);
+
             if (! ($response->successful() || $status === 200)) {
                 $body = method_exists($response, 'body') ? $response->body() : null;
                 Log::warning('Fallback download failed - non-200 status', ['document_id' => $document->id, 'status' => $status, 'body_snippet' => is_string($body) ? substr($body, 0, 500) : null]);
@@ -64,18 +96,45 @@ class ProcessDocumentCorrection implements ShouldQueue
                 return;
             }
 
-            $contentType = $response->header('Content-Type');
+            // Check if response is actually a PDF by content-type and file header
             if ($contentType && stripos($contentType, 'application/pdf') === false && stripos($contentType, 'text/html') !== false) {
-                 Log::warning('Fallback download returned HTML instead of PDF', [ 'document_id' => $document->id]);
+                Log::warning('Fallback download returned HTML instead of PDF', [
+                    'document_id' => $document->id,
+                    'content_type' => $contentType,
+                    'first_bytes' => file_exists($tempFile) ? bin2hex(substr(file_get_contents($tempFile, false, null, 0, 16), 0, 16)) : null
+                ]);
                 @unlink($tempFile);
                 $document->update(['upload_status' => 'Failed', 'details' => 'Worker received HTML error page instead of PDF.']);
                 return;
             }
 
-            $file_path = $tempFile; 
+            $file_path = $tempFile; // use the downloaded file
             Log::info("Fallback download successful for Document ID {$document->id}, using temp file: {$tempFile}", ['document_id' => $document->id]);
 
-            
+            // If the temp file has a MIME type of PDF but no .pdf extension, rename it
+            try {
+                if (function_exists('finfo_open')) {
+                    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+                    $mime = @finfo_file($finfo, $file_path);
+                    finfo_close($finfo);
+                } else {
+                    $mime = null;
+                }
+
+                $ext = pathinfo($file_path, PATHINFO_EXTENSION);
+                if (strtolower($mime) === 'application/pdf' && strtolower($ext) !== 'pdf') {
+                    $pdfPath = $file_path . '.pdf';
+                    if (@rename($file_path, $pdfPath)) {
+                        $file_path = $pdfPath;
+                        $tempFile = $pdfPath; // ensure cleanup removes the renamed file
+                        Log::info('Renamed temp download to have .pdf extension', ['document_id' => $document->id, 'new_path' => $pdfPath]);
+                    } else {
+                        Log::warning('Failed to rename temp file to .pdf extension', ['document_id' => $document->id, 'path' => $file_path]);
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Could not examine/rename downloaded temp file: ' . $e->getMessage(), ['document_id' => $document->id]);
+            }
         } catch (\Throwable $e) {
             Log::warning('Fallback download via signed URL failed: ' . $e->getMessage(), ['document_id' => $document->id, 'exception' => $e->getTraceAsString()]);
             if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
@@ -84,7 +143,30 @@ class ProcessDocumentCorrection implements ShouldQueue
         }
 
         try {
-            
+            // DEBUG: surface the resolved local path and basic file checks so we can
+            // diagnose "file not found by worker" issues in logs quickly.
+            try {
+                $debugExists = isset($file_path) && file_exists($file_path);
+                $debugReadable = isset($file_path) && is_readable($file_path);
+            } catch (\Throwable $t) {
+                $debugExists = false;
+                $debugReadable = false;
+            }
+
+            Log::info('Debug file path resolved', [
+                'document_id' => $document->id,
+                'disk' => $disk ?? null,
+                'file_location' => $fileLocation ?? null,
+                'file_path' => $file_path ?? null,
+                'file_exists' => $debugExists,
+                'is_readable' => $debugReadable,
+            ]);
+
+            // Quick validation: ensure the resolved file looks like a PDF by
+            // checking the leading bytes for the "%PDF-" signature. This helps
+            // detect cases where an HTML error page or truncated response was
+            // saved to disk (common with signed-URL 502/502 pages) which would
+            // otherwise cause the PDF parser to fail without an easy artifact.
             try {
                 $isPdf = false;
                 if (!empty($file_path) && is_file($file_path) && is_readable($file_path)) {
@@ -97,10 +179,38 @@ class ProcessDocumentCorrection implements ShouldQueue
                         }
                     }
                 }
+
                 if (! $isPdf) {
-                    Log::error("Document Correction Failed for ID {$document->id}: Invalid PDF data: Missing `%PDF-` header.");
+                    // Save a small debug sample (first 1KB) to local storage for
+                    // debugging. Do not fail noisily if the save itself errors.
+                    try {
+                        $sample = @file_get_contents($file_path, false, null, 0, 1024);
+                        if ($sample !== false && !empty($sample)) {
+                            $sampleName = 'debug_samples/document_' . $document->id . '_' . time() . '.sample.txt';
+                            // Always attempt to save locally first so the worker keeps a copy
+                            try {
+                                Storage::disk('local')->put($sampleName, $sample);
+                                Log::warning('PDF header missing; saved debug sample locally', ['document_id' => $document->id, 'sample' => $sampleName]);
+                            } catch (\Throwable $e) {
+                                Log::warning('PDF header missing; failed to save local debug sample: ' . $e->getMessage(), ['document_id' => $document->id]);
+                            }
+
+                            // S3/object-storage persistence intentionally removed —
+                            // we only persist debug samples locally to avoid remote
+                            // dependencies in this deployment.
+                        }
+                    } catch (\Throwable $_) {
+                        // ignore sample saving failures
+                    }
+
+                    Log::error("Document Correction Failed for ID {$document->id}: Invalid PDF data: Missing %PDF- header.");
                     $document->update(['upload_status' => 'Failed', 'details' => 'Invalid PDF data: Missing %PDF header.']);
-                    if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
+
+                    // cleanup temporary file if we created one
+                    if (!empty($tempFile) && file_exists($tempFile)) {
+                        @unlink($tempFile);
+                    }
+
                     return;
                 }
             } catch (\Throwable $e) {
@@ -108,31 +218,55 @@ class ProcessDocumentCorrection implements ShouldQueue
             }
 
             $parser = new Parser();
+            // update progress for parsing
             $this->pushProgress($document, 'Membaca isi dokumen...');
             $pdf = $parser->parseFile($file_path);
             $original_text = trim($pdf->getText());
 
             if (empty($original_text)) {
                 $document->update(['upload_status' => 'Failed', 'details' => 'Gagal mengekstrak teks dari PDF.']);
-                if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
                 return;
             }
 
-            // ... (Logika logging PDF extraction & cleaning text tetap sama) ...
+            // Log PDF extraction stats for verification
+            $pageCount = count($pdf->getPages());
+            $originalLength = mb_strlen($original_text, 'UTF-8');
+            Log::info('PDF extraction complete', [
+                'document_id' => $document->id,
+                'page_count' => $pageCount,
+                'original_text_length' => $originalLength,
+                'first_100_chars' => mb_substr($original_text, 0, 100, 'UTF-8'),
+                'last_100_chars' => mb_substr($original_text, -100, 100, 'UTF-8')
+            ]);
+
             $clean_text = mb_convert_encoding($original_text, 'UTF-8', 'UTF-8');
             $clean_text = preg_replace('/[[:cntrl:]]/', '', $clean_text);
             $original_text = $clean_text;
             
+            // Verify no text was lost during cleaning
+            $cleanedLength = mb_strlen($original_text, 'UTF-8');
+            if ($cleanedLength < $originalLength * 0.9) {
+                Log::warning('Significant text loss during cleaning', [
+                    'document_id' => $document->id,
+                    'original_length' => $originalLength,
+                    'cleaned_length' => $cleanedLength,
+                    'loss_percentage' => round((1 - $cleanedLength / $originalLength) * 100, 2)
+                ]);
+            }
+            
+            // indicate we're preparing chunks / checking cache
             $this->pushProgress($document, 'Mempersiapkan dokumen untuk dikoreksi...');
 
-            // Memanggil method 'correctTextWithGemini' yang sudah disederhanakan
-            $corrected_text = $this->correctTextWithGemini($original_text);
+            // === PERUBAHAN DI SINI ===
+            // Memanggil method Ollama, bukan Gemini lagi
+            $corrected_text = $this->correctTextWithOllama($original_text);
+            // === AKHIR PERUBAHAN ===
 
             if (str_starts_with($corrected_text, 'ERROR:')) {
                 throw new \Exception($corrected_text);
             }
 
-            // ... (Logika menyimpan hasil & update status 'Completed' tetap sama) ...
+            // persist results and mark completed
             $document->original_text = $original_text;
             $document->corrected_text = $corrected_text;
             $document->upload_status = 'Completed';
@@ -140,6 +274,7 @@ class ProcessDocumentCorrection implements ShouldQueue
             $document->save();
             $document->fresh();
 
+            // cleanup temporary file if we created one from remote storage
             if (!empty($tempFile) && file_exists($tempFile)) {
                 @unlink($tempFile);
             }
@@ -148,126 +283,334 @@ class ProcessDocumentCorrection implements ShouldQueue
 
         } catch (\Exception $e) {
             Log::error("Document Correction Failed for ID {$document->id}: " . $e->getMessage());
+            // cleanup temp file if used
             if (!empty($tempFile) && file_exists($tempFile)) {
                 @unlink($tempFile);
             }
+
             $document->update(['upload_status' => 'Failed', 'details' => 'Pemrosesan gagal: ' . substr($e->getMessage(), 0, 250)]);
         }
     }
 
-    private function correctTextWithGemini($text)
+    /**
+     * ===================================================================
+     * METHOD BARU UNTUK OLLAMA
+     * Mengoreksi teks menggunakan API Ollama (Senopati)
+     * ===================================================================
+     */
+    private function correctTextWithOllama($text)
     {
         // Start timing for diagnostics
         $jobStart = microtime(true);
 
         try {
-            // Cache check untuk seluruh teks
-            $cacheKey = 'doc_correction_' . sha1($text);
+            $cacheKey = 'doc_correction_ollama_' . sha1($text); // Cache key khusus Ollama
             if (Cache::has($cacheKey)) {
                 Log::info("Document correction cache hit for full document (key={$cacheKey}). Returning cached result.");
                 return Cache::get($cacheKey);
             }
 
-            // Ambil info API
-            $apiKey = env('GOOGLE_API_KEY');
-            $modelName = 'gemini-2.5-flash'; // Pastikan nama model ini benar
-            $url = "https://generativelanguage.googleapis.com/v1beta/models/{$modelName}:generateContent?key=" . $apiKey;
+            // --- INI ADALAH LOGIKA OLLAMA ---
+            $baseUrl = env('OLLAMA_API_BASE_URL', 'https://senopati.its.ac.id/senopati-lokal-dev');
+            $modelName = env('OLLAMA_API_MODEL'); // Ambil dari .env
+            $apiKey = env('OLLAMA_API_KEY', null); // Ambil dari .env (jika ada)
+            
+            $url = rtrim($baseUrl, '/') . '/generate';
 
-            // Timeout panjang (10 menit) untuk 1 request besar
-            $timeoutDuration = 600; 
+            if (empty($modelName)) {
+                Log::error('OLLAMA_API_MODEL tidak diatur di .env. Membatalkan job.');
+                return "ERROR: OLLAMA_API_MODEL not configured.";
+            }
 
+            $timeoutDuration = 600; // 10 minutes per request
+
+            // --- (Logika Chunking tetap sama) ---
+            $maxLength = 8000;
             $textLen = mb_strlen($text, 'UTF-8');
-            Log::info("Processing document correction: length={$textLen} chars, 1 chunk (full text)", [
+            $chunks = [];
+            for ($offset = 0; $offset < $textLen; $offset += $maxLength) {
+                $chunkText = mb_substr($text, $offset, $maxLength, 'UTF-8');
+                $chunks[] = $chunkText;
+            }
+            $chunkCount = count($chunks);
+            
+            Log::info("Processing document correction (OLLAMA): length={$textLen} chars, chunks={$chunkCount}", [
                 'document_id' => $this->documentId,
-                'text_length' => $textLen,
+                'model' => $modelName,
+                'api_url' => $url,
             ]);
 
-            // Update progress di UI
+            // --- (Logika Cache Check tetap sama) ---
+            $correctedChunks = array_fill(0, $chunkCount, null);
+            $toSend = [];
+            $cacheHits = 0;
+            foreach ($chunks as $i => $chunk) {
+                $chunkKey = 'doc_chunk_ollama_' . sha1($chunk); // Cache key khusus Ollama
+                if (Cache::has($chunkKey)) {
+                    $correctedChunks[$i] = Cache::get($chunkKey);
+                    $cacheHits++;
+                } else {
+                    $toSend[$i] = $chunk;
+                }
+            }
+            Log::info("Chunk cache hits: {$cacheHits}/{$chunkCount}");
             $document = Document::find($this->documentId);
             if (! $document) {
-                Log::warning("Document ID {$this->documentId} not found when updating progress; aborting.");
-                return "ERROR: Document not found.";
+                Log::warning("Document ID {$this->documentId} not found when updating chunk/cache details; aborting.");
+                return implode("\n\n", $correctedChunks);
             }
-            $this->pushProgress($document, "Mengoreksi seluruh dokumen (1 bagian)...");
+            $this->pushProgress($document, "Memeriksa dokumen ({$chunkCount} bagian)...");
+            if (empty($toSend)) {
+                $result = implode("\n\n", $correctedChunks);
+                Cache::put($cacheKey, $result, now()->addDays(7));
+                Log::info('All chunks served from cache; returning assembled result quickly.');
+                return $result;
+            }
+            // --- (Akhir Logika Cache Check) ---
 
-            // Buat 1 payload untuk seluruh teks
-            $payload = [
-                'contents' => [
-                    [
-                        'parts' => [
-                            ['text' => "Perbaiki tata bahasa dan ejaan dalam bahasa Indonesia tanpa mengubah makna berikut. Jangan ubah format tata letak teksnya. Berikan dalam bentuk teks saja, dan hanya berikan teks hasilnya.\n\n" . $text]
-                        ]
-                    ]
-                ]
-            ];
 
-            // Kirim 1 request HTTP
-            $response = Http::withOptions(['timeout' => $timeoutDuration])->post($url, $payload);
+            // --- (Logika Batching tetap sama) ---
+            $concurrency = 6; 
+            $indices = array_keys($toSend);
+            $batches = array_chunk($indices, $concurrency);
+            $totalBatches = count($batches);
+            $batchNumber = 0;
 
-            // Handle jika request gagal
-            if (! $response->successful()) {
-                $status = method_exists($response, 'status') ? $response->status() : 'unknown';
-                $errorBody = $response->body();
-                Log::error("Gemini HTTP Error (Full Text): status={$status} body=" . substr($errorBody, 0, 500));
+            foreach ($batches as $batch) {
+                $batchNumber++;
+                Log::info("Sending batch {$batchNumber}/{$totalBatches} (size=" . count($batch) . ") to Ollama...");
                 
-                // Cek error spesifik jika teks terlalu besar
-                if (str_contains($errorBody, '400 Bad Request') || str_contains($errorBody, 'too large') || str_contains($errorBody, 'REQUEST_TOO_LARGE')) {
-                    return "ERROR: Teks terlalu besar untuk diproses sekaligus.";
+                $document = Document::find($this->documentId);
+                if (! $document) {
+                    Log::warning("Document ID {$this->documentId} not found before sending batch {$batchNumber}; aborting.");
+                    return implode("\n\n", $correctedChunks);
                 }
-                
-                return "ERROR: Gagal menghubungi API (Status: {$status})";
-            }
+                $this->pushProgress($document, "Mengoreksi bagian {$batchNumber} dari {$totalBatches}...");
 
-            // Ekstrak hasil dari 1 response
-            $extracted = null;
-            try {
-                $json = $response->json();
-                Log::info("Gemini response JSON (Full Text)", [
-                    'document_id' => $this->documentId,
-                    'has_candidates' => isset($json['candidates']),
-                ]);
-                
-                if (!empty($json['candidates'][0]['content']['parts'][0]['text'])) {
-                    $extracted = $json['candidates'][0]['content']['parts'][0]['text'];
-                    Log::info("Extracted via candidates[0].content.parts[0].text (Full Text)");
+                $batchChunks = [];
+                foreach ($batch as $idx) {
+                    $batchChunks[] = ['index' => $idx, 'text' => $toSend[$idx]];
                 }
 
-            } catch (\Throwable $jsonErr) {
-                Log::error("JSON parsing failed (Full Text): " . $jsonErr->getMessage());
-                return "ERROR: Gagal membaca balasan dari API.";
+                $responses = [];
+                try {
+                    Log::info("About to call Http::pool for batch {$batchNumber}", [
+                        'document_id' => $this->documentId,
+                        'batch_size' => count($batchChunks),
+                        'timeout' => $timeoutDuration
+                    ]);
+
+                    // --- POOL DENGAN PAYLOAD OLLAMA ---
+                    $poolResponses = Http::pool(function (Pool $pool) use ($url, $batchChunks, $timeoutDuration, $modelName, $apiKey) {
+                        $calls = [];
+                        foreach ($batchChunks as $b) {
+                            $prompt = "Perbaiki tata bahasa dan ejaan dalam bahasa Indonesia tanpa mengubah makna berikut. Jangan ubah format tata letak teksnya. Berikan dalam bentuk teks saja, dan hanya berikan teks hasilnya.\n\n" . $b['text'];
+                            
+                            // Payload untuk Ollama
+                            $payload = [
+                                'model' => $modelName,
+                                'prompt' => $prompt,
+                                'stream' => false 
+                            ];
+                            
+                            $request = $pool->withOptions(['timeout' => $timeoutDuration]);
+
+                            if (!empty($apiKey)) {
+                                $request->withHeaders(['Authorization' => 'Bearer ' . $apiKey]); // Sesuaikan jika autentikasi beda
+                            }
+
+                            $calls[] = $request->post($url, $payload);
+                        }
+                        return $calls;
+                    });
+                    
+                    // (Logika konversi response pool tetap sama)
+                    foreach ($poolResponses as $idx => $poolResp) {
+                        if ($poolResp instanceof \Throwable) {
+                            Log::error("Pool response {$idx} is exception", ['class' => get_class($poolResp), 'message' => $poolResp->getMessage()]);
+                            $responses[] = new class {
+                                public function successful() { return false; } public function status() { return 0; }
+                                public function body() { return 'pool request threw exception'; } public function json() { return []; }
+                            };
+                        } else {
+                            $responses[] = $poolResp;
+                        }
+                    }
+                    
+                } catch (\Throwable $t) {
+                    Log::error("Http::pool (Ollama) failed on batch {$batchNumber}: " . $t->getMessage());
+                    // Fallback ke sekuensial
+                    $responses = [];
+                    foreach ($batchChunks as $b) {
+                        try {
+                            // Panggil method retry yang baru
+                            $resp = $this->sendOllamaChunkWithRetries($url, $b['text'], $timeoutDuration, $modelName, $apiKey);
+                            $responses[] = $resp;
+                        } catch (\Throwable $e) {
+                            Log::error("sendOllamaChunkWithRetries threw exception for chunk {$b['index']}: " . $e->getMessage());
+                            $responses[] = new class {
+                                public function successful() { return false; } public function status() { return 0; }
+                                public function body() { return 'exception during retry'; } public function json() { return []; }
+                            };
+                        }
+                    }
+                }
+
+                // --- PARSING RESPONSE OLLAMA ---
+                Log::info("Processing responses for batch {$batchNumber}", ['document_id' => $this->documentId, 'response_count' => count($responses)]);
+                
+                foreach (array_values($responses) as $k => $response) {
+                    $b = $batchChunks[$k];
+                    $index = $b['index'];
+                    
+                    // (Error handling standar tetap sama)
+                    if ($response instanceof \Throwable || ! is_object($response) || ! method_exists($response, 'successful')) {
+                         Log::error("Invalid response object for chunk {$index}", ['type' => is_object($response) ? get_class($response) : gettype($response)]);
+                        $correctedChunks[$index] = "[GAGAL KOREKSI BAGIAN {$index}]";
+                        continue;
+                    }
+
+                    if (! $response->successful()) {
+                        $status = method_exists($response, 'status') ? $response->status() : 'unknown';
+                        Log::error("Ollama HTTP Error (Chunk {$index}): status={$status} body=" . substr($response->body(), 0, 500));
+                        $correctedChunks[$index] = "[GAGAL KOREKSI BAGIAN {$index}]";
+                        continue;
+                    }
+
+                    // Ekstrak teks dari response Ollama
+                    try {
+                        $body = method_exists($response, 'body') ? $response->body() : (string) $response;
+                        $extracted = null;
+                        try {
+                            $json = $response->json();
+                            Log::info("Ollama response JSON for chunk {$index}", ['document_id' => $this->documentId, 'json_keys' => is_array($json) ? array_keys($json) : []]);
+                            
+                            // Standar Ollama adalah 'response'
+                            if (!empty($json['response'])) {
+                                $extracted = $json['response'];
+                                Log::info("Extracted via Ollama 'response' key for chunk {$index}");
+                            }
+
+                        } catch (\Throwable $jsonErr) {
+                            Log::error("JSON parsing failed for chunk {$index}: " . $jsonErr->getMessage());
+                        }
+
+                        if (empty($extracted)) {
+                            Log::warning("No text extracted from JSON, using raw body for chunk {$index}", ['body_preview' => substr($body, 0, 200)]);
+                            $extracted = trim($body);
+                        }
+                        
+                        $correctedChunks[$index] = trim($extracted);
+                        Log::info("Successfully processed chunk {$index}", ['document_id' => $this->documentId, 'extracted_length' => mb_strlen($correctedChunks[$index], 'UTF-8')]);
+
+                        // Cache chunk
+                        try {
+                            $chunkKey = 'doc_chunk_ollama_' . sha1($b['text']);
+                            Cache::put($chunkKey, $correctedChunks[$index], now()->addDays(7));
+                        } catch (\Throwable $_) { /* ignore cache failures */ }
+
+                    } catch (\Throwable $t) {
+                        Log::warning("Failed to parse Ollama response for chunk {$index}: " . $t->getMessage());
+                        $correctedChunks[$index] = "[GAGAL KOREKSI BAGIAN {$index}]";
+                    }
+                }
             }
 
-            if (empty($extracted)) {
-                Log::warning("No text extracted from JSON (Full Text)");
-                return "ERROR: API tidak memberikan hasil koreksi.";
+            // --- (Logika Assembly/Penggabungan Hasil tetap sama) ---
+            $document = Document::find($this->documentId);
+            if (! $document) {
+                Log::warning("Document ID {$this->documentId} not found before assembling; aborting.");
+                return implode("\n\n", $correctedChunks);
             }
-
-            $result = trim($extracted);
-
-            // Cache hasil lengkapnya
+            $this->pushProgress($document, 'Menggabungkan hasil koreksi...');
+            $result = implode("\n\n", $correctedChunks);
+            
+            // (Logging verifikasi chunk tetap sama)
+            $nullChunks = 0; $failedChunks = 0;
+            foreach ($correctedChunks as $idx => $chunk) {
+                if ($chunk === null) $nullChunks++;
+                if (is_string($chunk) && strpos($chunk, '[GAGAL KOREKSI BAGIAN') === 0) $failedChunks++;
+            }
+            Log::info("Document correction assembly complete", [
+                'document_id' => $this->documentId, 'total_chunks' => $chunkCount,
+                'null_chunks' => $nullChunks, 'failed_chunks' => $failedChunks,
+                'result_length' => mb_strlen($result, 'UTF-8'), 'original_length' => $textLen
+            ]);
+            
             Cache::put($cacheKey, $result, now()->addDays(7));
 
             $totalTook = round(microtime(true) - $jobStart, 3);
-            Log::info("Document correction finished (Full Text): total_time={$totalTook}s");
+            Log::info("Document correction (Ollama) finished: chunks={$chunkCount}, total_time={$totalTook}s");
 
             return $result;
 
         } catch (\Exception $e) {
-            Log::error('Gemini Request Exception (Job): ' . $e->getMessage());
+            Log::error('Ollama Request Exception (Job): ' . $e->getMessage());
             return "ERROR: " . $e->getMessage();
         }
     }
 
-    // private function sendChunkWithRetries(string $url, string $text, int $timeoutDuration)
-    // {
-    //     return new class {
-    //         public function successful() { return false; }
-    //         public function status() { return 0; }
-    //         public function body() { return 'no-response'; }
-    //         public function json() { return []; }
-    //     };
-    // }
+    /**
+     * ===================================================================
+     * METHOD BARU UNTUK OLLAMA
+     * Mengirim 1 chunk ke Ollama dengan retry
+     * ===================================================================
+     */
+    private function sendOllamaChunkWithRetries(string $url, string $text, int $timeoutDuration, string $modelName, ?string $apiKey)
+    {
+        $attempts = 0;
+        $maxAttempts = 2;
+        $lastResponse = null;
 
+        while ($attempts < $maxAttempts) {
+            $attempts++;
+            try {
+                $prompt = "Perbaiki tata bahasa dan ejaan dalam bahasa Indonesia tanpa mengubah makna berikut. Jangan ubah format tata letak teksnya. Berikan dalam bentuk teks saja, dan hanya berikan teks hasilnya.\n\n" . $text;
+
+                // Payload untuk Ollama
+                $payload = [
+                    'model' => $modelName,
+                    'prompt' => $prompt,
+                    'stream' => false
+                ];
+
+                $request = Http::withOptions(['timeout' => $timeoutDuration]);
+
+                if (!empty($apiKey)) {
+                    $request->withHeaders(['Authorization' => 'Bearer ' . $apiKey]); // Sesuaikan jika autentikasi beda
+                }
+
+                $response = $request->post($url, $payload);
+                
+                if ($response->successful()) {
+                    return $response;
+                }
+                $lastResponse = $response;
+                Log::warning("Chunk request (Ollama) attempt {$attempts} failed (status=" . $response->status() . ").");
+            } catch (\Throwable $t) {
+                Log::warning("Chunk request (Ollama) attempt {$attempts} exception: " . $t->getMessage());
+            }
+
+            sleep(1);
+        }
+
+        if ($lastResponse) {
+            return $lastResponse;
+        }
+
+        // Buat response error palsu
+        return new class {
+            public function successful() { return false; }
+            public function status() { return 0; }
+            public function body() { return 'no-response'; }
+            public function json() { return []; }
+        };
+    }
+
+    /**
+     * Append a progress entry to the document's progress_log and update details.
+     * This is best-effort and will not throw if the document is gone.
+     */
     private function pushProgress(Document $document, string $message, string $status = null)
     {
         try {
