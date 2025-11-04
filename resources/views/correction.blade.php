@@ -101,7 +101,7 @@
                 </a>
 
                 <button onclick="downloadDocument()" class="px-12 py-4 bg-gradient-to-r from-[#FEF9F0] to-[#85BBEB] text-[#0A0A2E] rounded-full font-bold text-lg hover:opacity-90 transition-all duration-200 shadow-xl border-2 border-[#85BBEB]/30">
-                    Terapkan Semua & Unduh
+                    Terapkan & Unduh
                 </button>
             </div>
         </main>

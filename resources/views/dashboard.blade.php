@@ -91,7 +91,7 @@
         {{-- Page Title --}}
         <div class="mb-12 fade-in-up">
             <h1 class="text-4xl lg:text-5xl font-bold text-[#FFFFFF] mb-3">
-                Selamat datang di,
+                Selamat datang di
             </h1>
             <h2 class="text-4xl lg:text-5xl font-extrabold bg-gradient-to-r from-[#85BBEB] via-[#FEF9F0] to-[#85BBEB] bg-clip-text text-transparent animate-gradient-text bg-[length:200%_auto]">
                 Tata Kata.
