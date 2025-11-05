@@ -192,22 +192,23 @@ class ProcessDocumentCorrection implements ShouldQueue
                 Log::warning("Document ID {$this->documentId} not found when updating progress; aborting.");
                 return "ERROR: Document not found.";
             }
-            $this->pushProgress($document, "Mengoreksi seluruh dokumen (1 bagian) dengan {$modelName}...");
+            $this->pushProgress($document, "Mengoreksi dokumen...");
 
             // Buat 1 payload untuk seluruh teks (format Ollama)
             $payload = [
                 'model' => $modelName,
-                'prompt' => "PERAN ANDA: Anda adalah editor bahasa Indonesia yang sangat presisi dan berfokus pada PUEBI.\n\n" .
-                "TUGAS: Terapkan rekomendasi koreksi ejaan (typo) dan tata bahasa (PUEBI) pada Teks Asli di bawah ini.\n\n" .
+                'prompt' => "PERAN ANDA: Anda adalah editor bahasa Indonesia yang sangat presisi dan berfokus pada KBBI dan PUEBI.\n\n" .
+                "TUGAS ANDA: Menerapkan koreksi ejaan (typo) dan tata bahasa (KBBI & PUEBI) pada Teks Asli terlampir setelah penjelasan ATURAN WAJIB dan OUTPUT.\n\n" .
                 "ATURAN WAJIB:\n" .
-                "1. FOKUS UTAMA: Hanya perbaiki kesalahan ejaan yang jelas (salah ketik, kata tidak baku), tata bahasa, tanda baca, dan penggunaan huruf kapital.\n" .
-                "2. JANGAN UBAH GAYA: Dilarang keras mengubah gaya bahasa, struktur kalimat, atau pilihan kata (diksi) yang sudah benar, meskipun ada cara lain untuk menyatakannya.\n" .
-                "3. JANGAN UBAH MAKNA: Dilarang keras menambah, mengurangi, atau mengubah KONTEN, MAKNA, atau IDE dari Teks Asli.\n" .
-                "4. PERTAHANKAN FORMAT: Jaga tata letak, paragraf, dan jeda baris (line breaks) semirip mungkin dengan Teks Asli.\n\n" .
-                "5. Gunakan bahasa Indonesia yang baku dan formal sesuai PUEBI.\n\n" .
-                "OUTPUT: Berikan HANYA rekomendasi koreksi\n\n" .
+                "1. FOKUS UTAMA: HANYA perbaiki kesalahan ejaan yang jelas (salah ketik, kata tidak baku), tata bahasa, tanda baca, dan penggunaan huruf kapital. Jangan menambahkan jawaban sendiri.\n" .
+                "2. DILARANG KERAS mengubah gaya bahasa, struktur kalimat, atau pilihan kata (diksi) yang sudah benar, meskipun ada cara lain (bentuk parafrase) untuk menyatakannya.\n" .
+                "3. DILARANG KERAS menambah, mengurangi, atau mengubah konten, makna, atau ide dari Teks Asli.\n" .
+                "4. Jaga tata letak, paragraf, dan jeda baris semirip mungkin dengan Teks Asli. Jika ada tabel, pertahankan bentuk tabel (atau setidaknya dipartisi).\n\n" .
+                "5. Gunakan bahasa Indonesia yang BAKU dan FORMAL sesuai KBBI dan PUEBI.\n\n" .
+                "6. DILARANG KERAS memberikan ringkasan pada hasil koreksi. Pilih salah satu section dari laporan yang penulisannya paling melenceng serta berikan keterangan section (misal bagian Pendahuluan, Hasil dan Pembahasan, atau Kesimpulan). DILARANG KERAS menambah-nambah section.\n\n" .
+                "OUTPUT: Berikan HANYA rekomendasi koreksi dan JANGAN BERIKAN RINGKASAN. Hanya perbaiki tata bahasa dan ejaan dari Teks Asli saja sesuai dengan ATURAN WAJIB.\n\n" .
                 "--- TEKS ASLI ---\n" . $text,
-                'stream' => false,
+                'stream' => false, // hasil prompt masi super ngaco malah ngasi kesimpulan
             ];
 
             // Kirim 1 request HTTP
