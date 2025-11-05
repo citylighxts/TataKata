@@ -86,7 +86,7 @@
                     </div>
                     <div class="relative bg-gradient-to-br from-[#FEF9F0]/5 via-[#0A0A2E]/50 to-[#85BBEB]/5 backdrop-blur-xl rounded-3xl p-8 min-h-[600px] shadow-2xl border border-[#85BBEB]/20">
                         <div class="flex items-center gap-3 mb-6 pb-4 border-b border-[#85BBEB]/10">
-                            <h5 class="text-xl font-bold text-[#FFFFFF]">Hasil Koreksi</h5>
+                            <h5 class="text-xl font-bold text-[#FFFFFF]">Rekomendasi Koreksi</h5>
                         </div>
                         <div class="prose max-w-none text-[#C0C0C0] leading-relaxed text-base">
                             <p class="whitespace-pre-wrap break-words break-all max-w-full">{{ $correctedText ?? $corrected_text ?? 'Teks koreksi akan muncul di sini.' }}</p>
