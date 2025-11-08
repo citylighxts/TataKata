@@ -77,8 +77,6 @@ class DocumentController extends Controller
         }
     }
 
-
-    // ... (Fungsi checkStatus diubah sedikit) ...
     public function checkStatus($id)
     {
         try {
@@ -88,7 +86,7 @@ class DocumentController extends Controller
             if (! $document) {
                 return response()->json([
                     'status' => 'Deleted',
-                    'done' => true,
+                    'done' => false, // Polling harus berhenti, tapi ini bukan 'done' (sukses)
                     'details' => 'Dokumen telah dihapus oleh pengguna.',
                     'progress' => [],
                     'redirect_url' => null
@@ -102,19 +100,27 @@ class DocumentController extends Controller
             $document->refresh();
             $status = trim($document->upload_status ?? '');
             
-            // Logika 'done' diubah: 'Ready' berarti selesai memecah dan siap ditampilkan
-            $isDone = ($status === 'Ready' || $status === 'Completed' || $status === 'Failed');
+            // ==========================================================
+            // PERUBAHAN STEP 2: LOGIKA 'DONE' YANG BARU
+            // ==========================================================
+            
+            // 'done' HANYA berarti "polling selesai DAN berhasil (siap redirect)"
+            $isDoneAndReady = ($status === 'Ready');
 
-            \Log::info("🟢 Document ID {$id} status: '{$status}'. Done: {$isDone}");
-
+            \Log::info("🟢 Document ID {$id} status: '{$status}'. DoneAndReady: {$isDoneAndReady}");
+            
+            // Frontend JS akan memeriksa 'status' string untuk 'Failed', 'Deleted', atau 'No_Chapters'
+            // dan akan memeriksa 'done: true' HANYA untuk redirect
+            
             return response()->json([
                 'status' => $document->upload_status,
-                'done' => $isDone,
+                'done' => $isDoneAndReady, // 'done' HANYA true jika status 'Ready'
                 'details' => $document->details,
                 'progress' => array_slice($document->progress_log ?? [], -20),
-                // Arahkan ke 'correction.show' jika sudah 'Ready'
-                'redirect_url' => ($status === 'Ready') ? route('correction.show', $document->id) : null
+                'redirect_url' => $isDoneAndReady ? route('correction.show', $document->id) : null
             ]);
+            // ==========================================================
+
         } catch (\Throwable $e) {
             \Log::error("❌ checkStatus ERROR: " . $e->getMessage(), [
                 'document_id' => $id

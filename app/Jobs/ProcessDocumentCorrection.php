@@ -84,12 +84,20 @@ class ProcessDocumentCorrection implements ShouldQueue
             
             $pdf = $parser->parseFile($file_path);
             $pages = $pdf->getPages();
-            Log::info("Total pages found: " . count($pages), ['document_id' => $document->id]);
+            Log::info("Total pages found: " . count($pages), ['document_id' => $this->documentId]);
 
             $chapters_data = $this->splitByBab($pages); 
             
+            // Logika "Bukan File TA" (No_Chapters)
             if (empty($chapters_data)) {
-                 throw new \Exception('Gagal memecah dokumen. Tidak ada bab valid (BAB I, BAB II, dst.) yang ditemukan.');
+                 Log::warning("No valid chapters found for Document ID {$this->documentId}. Marking as 'No_Chapters'.");
+                 $document->update([
+                     'upload_status' => 'No_Chapters', 
+                     'details' => 'Dokumen ini tidak dapat dipecah. Pastikan file yang diunggah adalah Tugas Akhir (TA).'
+                 ]);
+                 
+                 if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
+                 return;
             }
 
             $totalChapters = count($chapters_data);
@@ -114,7 +122,7 @@ class ProcessDocumentCorrection implements ShouldQueue
                 }
 
                 if ($createdChapters === 0) {
-                    throw new \Exception('Tidak ada bab yang valid ditemukan setelah pemrosesan.');
+                    throw new \Exception('Gagal menyimpan bab yang valid setelah pemrosesan.');
                 }
 
                 $document->upload_status = 'Ready'; 
@@ -157,144 +165,150 @@ class ProcessDocumentCorrection implements ShouldQueue
         }
     }
 
-    // =================================================================
-    // == FUNGSI SPLITBYBAB BARU (METODE PAGE-BY-PAGE v6) ==
-    // =================================================================
-
-    /**
-     * Membersihkan teks per halaman (Versi AMAN)
-     */
+    // Fungsi cleanPageText v6.1 (sudah benar)
     private function cleanPageText(string $text): string
     {
-        // Gabung hyphen
+        $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
+        $text = preg_replace('/[^\pL\pN\pP\pS\pZ\s]/u', '', $text);
         $text = preg_replace('/(\w)-\n(\w)/', '$1$2', $text); 
-        // Normalisasi newline
         $text = preg_replace('/\n{3,}/', "\n\n", $text); 
-        
         return trim($text);
     }
 
-    /**
-     * Memecah dokumen berdasarkan array Halaman ($pages)
-     */
+
+    // =================================================================
+    // == FUNGSI SPLITBYBAB (v12 - Perbaikan Anti-ToC & Cyrillic) ==
+    // =================================================================
     private function splitByBab(array $pages): array
     {
-        $chapters = [];
-        $currentChapterContent = "";
-        $currentChapterTitle = "";
-        $recording = false;
+        try {
+            $chapters = [];
+            $currentChapterContent = "";
+            $currentChapterTitle = "";
+            $recording = false;
 
-        // ==================
-        // PERBAIKAN REGEX v6
-        // ==================
-        // Pola nomor Bab: Mencari nomor Romawi (I-X) atau Angka (1-10) atau Cyrillic (ІШ)
-        // Ditambahkan \b (word boundary) agar "I" tidak cocok dengan "III"
-        $roman = 'X|IX|IV|V?I{0,3}'; // I, II, III, IV, V, VI, VII, VIII, IX, X
-        $arabic = '\d+'; // 1, 2, 3...
-        $cyrillic = 'ІШ'; // Khusus untuk BAB III Anda
-        
-        // Pola Header Bab (Lengkap):
-        $regex_chapter_header = '/^((?:BAB|ВАВ)\s+(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b\s*\n\s*[A-Z][A-Z\s&]+)/im';
-        
-        // Pola Cek DAFTAR ISI:
-        // Cek jika header bab diikuti oleh spasi/titik dan angka (nomor halaman ToC)
-        $regex_is_toc_line = '/^((?:BAB|ВАВ)\s+(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b\s*\n\s*[A-Z][A-Z\s&]+)[\s.]*\d+/im';
-        
-        // Pola Stop
-        $regex_stop_signals = '/^(DAFTAR PUSTAKA|LAMPIRAN)/i';
+            // ==================
+            // PERBAIKAN REGEX v12
+            // ==================
+            
+            // Pola nomor Bab: Romawi (I-X), Cyrillic (ІШ ATAU IІI), atau Angka (1-10, dst)
+            $roman = 'X|IX|IV|V?I{0,3}'; // I, II, III, IV, V, VI, VII, VIII, IX, X
+            $arabic = '\d+'; // 1, 2, 3...
+            $cyrillic = '(?:ІШ|ІII)'; // (FIX) Mencocokkan ІШ ATAU ІII
+            
+            $number_pattern = '(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b'; 
+            $title_pattern = '[A-Z][A-Z\s&]+';
+            $separator_pattern = '(?:\s+|\s*\n\s*)'; 
 
-        foreach ($pages as $pageNum => $page) {
-            // Normalisasi karakter aneh "ВАВ ІШ" -> "BAB III"
-            // (Tetap dilakukan untuk membersihkan judul, meskipun regex sudah menangani)
-            $rawPageText = str_replace(["ВАВ ІШ", "ВАВ III"], "BAB III", $page->getText());
-            $pageText = $this->cleanPageText($rawPageText);
+            // Regex Header Bab (Lengkap):
+            // Grup 1: (BAB 1 JUDUL)
+            // Grup 2: (JUDUL \n BAB 1)
+            // Grup 3: (BAB 1) (saja)
+            $regex_chapter_header = '/^((?:BAB|ВАВ)\s+' . $number_pattern . $separator_pattern . $title_pattern . ')|' .
+                                  '^(' . $title_pattern . $separator_pattern . '(?:BAB|ВАВ)\s+' . $number_pattern . ')|' .
+                                  '^((?:BAB|ВАВ)\s+' . $number_pattern . ')/im';
+            
+            // Regex untuk MENGHAPUS awalan "BAB X" dari judul
+            $regex_strip_bab_prefix = '/^(?:BAB|ВАВ)\s+(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b\s*/i';
 
-            if (empty($pageText)) {
-                continue;
-            }
+            // Pola Cek Daftar Isi (ToC) v11/v12 (AMAN):
+            // Cek jika halaman berisi kata "DAFTAR ISI", "DAFTAR GAMBAR", dll.
+            $regex_is_toc_page = '/(DAFTAR ISI|DAFTAR GAMBAR|DAFTAR TABEL|DAFTAR KODE SUMBER)/i';
+            
+            // Pola Stop
+            $regex_stop_signals = '/^(DAFTAR PUSTAKA|LAMPIRAN)/i';
+            // ==================
 
-            // 1. Cek apakah kita harus BERHENTI merekam (Daftar Pustaka, dll)
-            if ($recording && preg_match($regex_stop_signals, $pageText)) {
-                Log::info("Stop signal found (DAFTAR PUSTAKA) at page {$pageNum}. Stopping recording.");
-                $recording = false;
-                if (!empty(trim($currentChapterContent))) {
-                    $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
-                }
-                break; // Keluar dari loop utama
-            }
+            foreach ($pages as $pageNum => $page) {
+                $rawPageText = $page->getText();
+                $pageText = $this->cleanPageText($rawPageText); 
 
-            // 2. Cek apakah halaman ini mengandung Header Bab
-            if (preg_match_all($regex_chapter_header, $pageText, $matches, PREG_SET_ORDER)) {
-                
-                $textToAppend = $pageText;
-                
-                // Cari semua header ToC di halaman ini SEKALI SAJA
-                $toc_headers_on_this_page = [];
-                if (preg_match_all($regex_is_toc_line, $pageText, $toc_matches)) {
-                    foreach ($toc_matches[1] as $toc_header_raw) {
-                         $toc_headers_on_this_page[] = trim(preg_replace('/\s+/', ' ', $toc_header_raw));
-                    }
+                if (empty($pageText)) {
+                    continue;
                 }
 
-                foreach ($matches as $match) {
-                    $newTitle = trim(preg_replace('/\s+/', ' ', $match[1]));
+                // Normalisasi (tetap dilakukan untuk membersihkan judul)
+                $pageText = str_replace(["ВАВ ІШ", "ВАВ III", "ВАВ ІII"], "BAB III", $pageText);
 
-                    // 3. SANITY CHECK: Apakah header ini ada di daftar ToC yang kita temukan?
-                    if (in_array($newTitle, $toc_headers_on_this_page)) {
-                        Log::info("Found header ('{$newTitle}') at page {$pageNum}, but it's a Table of Contents entry. Ignoring.");
-                        // Hapus header ToC ini dari teks agar tidak ter-append jika kita sedang merekam
-                        $textToAppend = str_replace($match[0], '', $textToAppend); 
-                        continue; // Lanjut ke match berikutnya di halaman yang sama
+                // 1. Cek Stop
+                if ($recording && preg_match($regex_stop_signals, $pageText)) {
+                    Log::info("Stop signal found (DAFTAR PUSTAKA/LAMPIRAN) at page {$pageNum}. Stopping recording.");
+                    $recording = false;
+                    if (!empty(trim($currentChapterContent))) {
+                        $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
                     }
+                    break; 
+                }
 
-                    // 4. JIKA INI BUKAN DAFTAR ISI: Ini adalah header bab yang asli
+                // 2. SANITY CHECK (ToC) v11/v12
+                if (preg_match($regex_is_toc_page, $pageText)) {
+                    Log::info("Page {$pageNum} identified as Table of Contents (DAFTAR ISI, etc). Skipping all headers on this page.");
+                    continue; // Lanjut ke halaman berikutnya
+                }
+
+                // 3. Cek Header Bab (HANYA jika bukan halaman ToC)
+                if (preg_match_all($regex_chapter_header, $pageText, $matches, PREG_SET_ORDER)) {
                     
-                    // 5. Jika kita BELUM merekam (ini BAB I)
-                    if (!$recording) {
-                        Log::info("Found REAL BAB I ('{$newTitle}') at page {$pageNum}. Starting recording.");
-                        $recording = true;
-                        $currentChapterTitle = $newTitle;
-                        // Hapus judul dari isi teks
-                        $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
+                    $textToAppend = $pageText;
                     
-                    // 6. Jika kita SUDAH merekam (ini BAB II, III, dst.)
-                    } else {
-                        Log::info("Found new chapter ('{$newTitle}') at page {$pageNum}. Saving previous chapter.");
-                        // Simpan bab sebelumnya
-                        if (!empty(trim($currentChapterContent))) {
-                            $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
+                    foreach ($matches as $match) {
+                        $fullMatchedHeader = trim(preg_replace('/\s+/', ' ', $match[0]));
+
+                        // 4. Ekstraksi Judul (v11/v12)
+                        $newTitle = trim(preg_replace($regex_strip_bab_prefix, '', $fullMatchedHeader));
+                        
+                        if (empty($newTitle)) {
+                            $newTitle = $fullMatchedHeader;
                         }
-                        // Mulai bab baru
-                        $currentChapterTitle = $newTitle;
-                        $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
-                        $currentChapterContent = ""; // Reset konten
-                    }
-                } // Selesai loop $matches
+                        
+                        $isBab1 = preg_match('/^(?:BAB|ВАВ)\s+(?:I|1)\b/i', $fullMatchedHeader);
 
-                // 7. Tambahkan sisa teks di halaman ini (jika ada) ke bab saat ini
-                if ($recording && !empty(trim($textToAppend))) {
-                    $currentChapterContent .= "\n\n" . $textToAppend;
+                        // 5. Logika Merekam
+                        if (!$recording) {
+                            if ($isBab1) { 
+                                Log::info("Found REAL BAB I ('{$newTitle}') at page {$pageNum}. Starting recording.");
+                                $recording = true;
+                                $currentChapterTitle = $newTitle;
+                                $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
+                            } else {
+                                 Log::info("Found header ('{$newTitle}') but it's not BAB I. Ignoring until BAB I is found.");
+                            }
+                        } else {
+                            Log::info("Found new chapter ('{$newTitle}') at page {$pageNum}. Saving previous chapter.");
+                            if (!empty(trim($currentChapterContent))) {
+                                $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
+                            }
+                            $currentChapterTitle = $newTitle;
+                            $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
+                            $currentChapterContent = ""; 
+                        }
+                    } 
+
+                    // 6. Tambahkan sisa teks
+                    if ($recording && !empty(trim($textToAppend))) {
+                        $currentChapterContent .= "\n\n" . $textToAppend;
+                    }
+                
+                } elseif ($recording) {
+                    $currentChapterContent .= "\n\n" . $pageText;
                 }
-            
-            // 8. Jika ini BUKAN halaman bab baru, TAPI kita sedang merekam
-            } elseif ($recording) {
-                // Tambahkan teks halaman ini ke bab yang sedang berjalan
-                $currentChapterContent .= "\n\n" . $pageText;
+            }
+
+            // Simpan bab terakhir
+            if ($recording && !empty(trim($currentChapterContent))) {
+                Log::info("Saving last chapter ('{$currentChapterTitle}').");
+                $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
             }
             
-            // 9. Jika kita belum merekam (masih di Abstrak, dll), abaikan saja.
-        }
+            if (empty($chapters)) {
+                Log::warning("Page-by-page loop finished but no valid chapters were recorded.", ['doc_id' => $this->documentId ?? null]);
+            }
 
-        // Simpan bab terakhir yang tersisa setelah loop selesai
-        if ($recording && !empty(trim($currentChapterContent))) {
-            Log::info("Saving last chapter ('{$currentChapterTitle}').");
-            $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
-        }
-        
-        if (empty($chapters)) {
-             Log::warning("Page-by-page loop finished but no valid chapters were recorded.", ['doc_id' => $this->documentId ?? null]);
-        }
+            return $chapters;
 
-        return $chapters;
+        } catch (\Exception $e) {
+            Log::error("splitByBab failed: " . $e->getMessage(), ['doc_id' => $this->documentId ?? null]);
+            return []; // Kembalikan array kosong jika ada error
+        }
     }
 }

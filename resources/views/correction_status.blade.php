@@ -30,7 +30,7 @@
             
             {{-- Document Info --}}
             <p class="text-base sm:text-lg md:text-xl text-[#C0C0C0] mb-6 sm:mb-8" id="doc-info">
-                Dokumen <strong class="text-[#85BBEB]">{{ $document->file_name }}</strong> sedang diperiksa dan dikoreksi oleh AI.
+                Dokumen <strong class="text-[#85BBEB]">{{ $document->file_name }}</strong> sedang dianalisis.
             </p>
 
             {{-- Status Display --}}
@@ -74,7 +74,7 @@
                             <ul id="progress-list" class="text-sm text-[#C0C0C0] space-y-2 max-h-40 overflow-auto pr-2 custom-scrollbar">
                                 @foreach(array_slice($document->progress_log ?? [], -10) as $entry)
                                     <li class="flex gap-2 items-start hover:text-[#FEF9F0] transition-colors duration-200">
-                                        <span class="text-xs text-[#85BBEB]/70 font-mono">[{{ $entry['ts'] ?? '' }}]</span>
+                                        <span class="text-xs text-[#85BBEB]/70 font-mono">[{{ \Carbon\Carbon::parse($entry['ts'] ?? now())->format('H:i:s') }}]</span>
                                         <span>{{ $entry['message'] ?? '' }}</span>
                                     </li>
                                 @endforeach
@@ -95,13 +95,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const checkUrl = "{{ route('correction.check-status', $document->id) }}";
+            const checkUrl = "{{ route('correction.check-status', $document->id) }}"; // Ganti nama route
             const statusMessage = document.getElementById('status-message');
             const statusDisplay = document.getElementById('status-display');
             const mainTitle = document.getElementById('main-title');
             const docInfo = document.getElementById('doc-info');
             
-            const intervalDuration = 15000; 
+            const intervalDuration = 5000; // Cek setiap 5 detik
             let pollingIntervalId = null;
 
             function createRedirectButton(url) {
@@ -123,7 +123,11 @@
                 .then(data => {
                     statusMessage.innerText = `Status: ${data.status}...`;
 
-                    if (data.done) { 
+                    // ==========================================================
+                    // PERUBAHAN STEP 3: JAVASCRIPT HANDLER BARU
+                    // ==========================================================
+                    
+                    if (data.done) { // Ini HANYA akan true jika status = 'Ready'
                         if (pollingIntervalId !== null) {
                             clearInterval(pollingIntervalId); 
                             pollingIntervalId = null; 
@@ -132,21 +136,47 @@
                         mainTitle.innerText = "Pemrosesan Selesai! 🎉";
                         statusDisplay.innerHTML = createRedirectButton(data.redirect_url);
                         statusMessage.innerText = "Dokumen siap. Klik tombol di atas untuk melihat perubahannya.";
-
-                    } else if (data.status === 'Failed') {
+                    
+                    } else if (data.status === 'No_Chapters') {
+                        // Status baru: Dokumen bukan TA
                         if (pollingIntervalId !== null) { clearInterval(pollingIntervalId); }
                         
                         docInfo.classList.add('hidden');
-                        
-                        mainTitle.innerText = "Pemrosesan Gagal ❌";
+                        mainTitle.innerText = "Format Dokumen Salah 📑";
                         statusDisplay.innerHTML = `
-                            <a href="{{ route('upload') }}"
+                            <a href="{{ route('dashboard') }}"
                                class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-bold text-lg relative overflow-hidden group">
                                 <span class="relative z-10 flex items-center gap-2">
                                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/>
                                     </svg>
-                                    Kembali ke Unggah Dokumen
+                                    Kembali ke Beranda
+                                </span>
+                                <div class="absolute inset-0 bg-gradient-to-r from-[#FEF9F0]/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                            </a>
+                        `;
+                        statusMessage.innerText = "Gagal memecah dokumen.";
+                        
+                        const errorEl = document.getElementById('error-message');
+                        if (data.details) {
+                            errorEl.innerText = data.details; // "Dokumen ini tidak dapat dipecah..."
+                            errorEl.classList.remove('hidden');
+                        }
+
+                    } else if (data.status === 'Failed') {
+                        // Status Gagal (Error sistem)
+                        if (pollingIntervalId !== null) { clearInterval(pollingIntervalId); }
+                        
+                        docInfo.classList.add('hidden');
+                        mainTitle.innerText = "Pemrosesan Gagal ❌";
+                        statusDisplay.innerHTML = `
+                            <a href="{{ route('dashboard') }}"
+                               class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-bold text-lg relative overflow-hidden group">
+                                <span class="relative z-10 flex items-center gap-2">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3"/>
+                                    </svg>
+                                    Kembali ke Beranda
                                 </span>
                                 <div class="absolute inset-0 bg-gradient-to-r from-[#FEF9F0]/30 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                             </a>
@@ -154,11 +184,12 @@
                         statusMessage.innerText = "Terjadi kesalahan. Silakan coba unggah dokumen lagi.";
                         const errorEl = document.getElementById('error-message');
                         if (data.details) {
-                            errorEl.innerText = data.details;
+                            errorEl.innerText = 'Error: ' + data.details;
                             errorEl.classList.remove('hidden');
                         }
                     }
                     else if (data.status === 'Deleted') {
+                        // Status Dihapus
                         if (pollingIntervalId !== null) { clearInterval(pollingIntervalId); }
                         mainTitle.innerText = "Dokumen Dihapus 🗑️";
                         statusDisplay.innerHTML = `
@@ -177,6 +208,7 @@
                         docInfo.classList.add('hidden');
                     }
                     
+                    // Update detail dan progres (jika masih memproses)
                     const detailsEl = document.getElementById('status-details');
                     if (data.details && detailsEl) {
                         detailsEl.innerText = data.details;
@@ -186,12 +218,17 @@
                         const list = document.getElementById('progress-list');
                         if (list) {
                             list.innerHTML = '';
-                            data.progress.forEach(entry => {
+                            data.progress.slice().reverse().forEach(entry => { // Tampilkan dari terbaru
                                 const li = document.createElement('li');
                                 li.className = 'flex gap-2 items-start hover:text-[#FEF9F0] transition-colors duration-200';
                                 const ts = document.createElement('span');
                                 ts.className = 'text-xs text-[#85BBEB]/70 font-mono';
-                                ts.innerText = '[' + (entry.ts || '') + ']';
+                                // Format timestamp H:i:s
+                                let date = new Date(entry.ts);
+                                let timeString = [date.getHours(), date.getMinutes(), date.getSeconds()]
+                                    .map(v => v < 10 ? '0' + v : v)
+                                    .join(':');
+                                ts.innerText = '[' + (timeString || '...') + ']';
                                 const msg = document.createElement('span');
                                 msg.innerText = entry.message || '';
                                 li.appendChild(ts);
@@ -207,7 +244,9 @@
                 });
             }
             
+            // Periksa status segera saat halaman dimuat
             checkProcessingStatus(); 
+            // Mulai polling
             pollingIntervalId = setInterval(checkProcessingStatus, intervalDuration);
 
         });
