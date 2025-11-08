@@ -62,5 +62,12 @@ Website TataKata dirancang agar mudah digunakan oleh seluruh pengguna yang terli
    npm run dev
    ```
 
+## Run konfigurasi ngrok
+
+Jalankan command terlampir untuk run ngrok.yml
+```
+ngrok start --all --config ngrok.yml
+```
+
 ## Repositori Lama
 Link repositori lama: [TataKata Lama](https://github.com/salpurn/TataKata)

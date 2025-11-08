@@ -13,9 +13,9 @@ use Smalot\PdfParser\Parser;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
 
-
 class DocumentController extends Controller
 {
+    // ... (Fungsi uploadForm dan upload tetap SAMA) ...
     public function uploadForm()
     {
         return view('upload');
@@ -32,17 +32,18 @@ class DocumentController extends Controller
             $document_name = $request->input('document_name');
 
             $filename = time() . '_' . preg_replace('/[^A-Za-z0-9_-]/', '_', pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) . '.pdf';
-            // Use the configured default filesystem disk so switching to S3 is possible
             $usedDisk = config('filesystems.default') ?: 'public';
             $path = $file->storeAs('documents', $filename, $usedDisk);
 
-            // Debug info: record which DB driver and filesystem disk are in use, and where the file landed
             \Log::info('Upload: stored file', [
                 'file_path' => $path,
                 'disk' => $usedDisk,
                 'db_driver' => config('database.default'),
                 'user_id' => Auth::id(),
             ]);
+
+            // Hapus dokumen lama dengan nama yang sama (jika ada)
+            // Document::where('user_id', Auth::id())->where('file_name', $document_name)->delete();
 
             $document = Document::create([
                 'user_id' => Auth::id(),
@@ -76,6 +77,8 @@ class DocumentController extends Controller
         }
     }
 
+
+    // ... (Fungsi checkStatus diubah sedikit) ...
     public function checkStatus($id)
     {
         try {
@@ -98,16 +101,19 @@ class DocumentController extends Controller
 
             $document->refresh();
             $status = trim($document->upload_status ?? '');
-            $isCompleted = ($status === 'Completed');
+            
+            // Logika 'done' diubah: 'Ready' berarti selesai memecah dan siap ditampilkan
+            $isDone = ($status === 'Ready' || $status === 'Completed' || $status === 'Failed');
 
-            \Log::info("🟢 Document ID {$id} status: '{$status}'. Done: {$isCompleted}");
+            \Log::info("🟢 Document ID {$id} status: '{$status}'. Done: {$isDone}");
 
             return response()->json([
                 'status' => $document->upload_status,
-                'done' => $isCompleted,
+                'done' => $isDone,
                 'details' => $document->details,
                 'progress' => array_slice($document->progress_log ?? [], -20),
-                'redirect_url' => route('correction.show', $document->id)
+                // Arahkan ke 'correction.show' jika sudah 'Ready'
+                'redirect_url' => ($status === 'Ready') ? route('correction.show', $document->id) : null
             ]);
         } catch (\Throwable $e) {
             \Log::error("❌ checkStatus ERROR: " . $e->getMessage(), [
@@ -117,6 +123,7 @@ class DocumentController extends Controller
         }
     }
 
+    // ... (Fungsi showStatus tetap SAMA) ...
     public function showStatus($id)
     {
         $document = Document::findOrFail($id); 
@@ -128,10 +135,11 @@ class DocumentController extends Controller
         return view('correction_status', compact('document'));
     }
 
+    // == FUNGSI showCorrection DIUBAH ==
     public function showCorrection($id)
     {
-        DB::reconnect();
-        $document = Document::findOrFail($id);
+        // Muat dokumen BERSAMA relasi chapters
+        $document = Document::with('chapters')->findOrFail($id);
         $document->refresh();
 
         if ($document->user_id !== Auth::id()) {
@@ -139,81 +147,72 @@ class DocumentController extends Controller
         }
 
         $statusLower = strtolower(trim($document->upload_status ?? ''));
-        $isCompleted = ($statusLower === 'completed');
-
-        if (!$isCompleted) {
-            \Log::warning("⚠️ Clash Detected: User tried accessing completed page for ID {$id} but status is '{$document->upload_status}'");
+        
+        // Hanya izinkan akses jika statusnya 'Ready' (siap dikoreksi per-bab)
+        if ($statusLower !== 'ready') {
+            \Log::warning("⚠️ Clash Detected: User tried accessing correction page for ID {$id} but status is '{$document->upload_status}'");
+            // Kirim kembali ke halaman status jika belum 'Ready'
             return view('correction_status', compact('document'));
         }
 
-        return view('correction', [
-            'document' => $document,
-            'original_text' => $document->original_text,
-            'corrected_text' => $document->corrected_text,
-        ]);
+        // Kirim $document (yang berisi $document->chapters) ke view
+        return view('correction', compact('document'));
     }
 
+    // == FUNGSI download DIUBAH ==
     public function download($id)
     {
-    $document = Document::findOrFail($id);
-    if ($document->user_id !== Auth::id()) {
-        abort(403, 'Anda tidak memiliki akses ke koreksi ini.');
+        // Muat dokumen BERSAMA relasi chapters
+        $document = Document::with('chapters')->findOrFail($id);
+        if ($document->user_id !== Auth::id()) {
+            abort(403, 'Anda tidak memiliki akses ke koreksi ini.');
+        }
+
+        if ($document->chapters->isEmpty()) {
+            return back()->with('error', 'Dokumen ini belum dipecah menjadi bab.');
+        }
+
+        $separator = "\n\n" . str_repeat('=', 60) . "\n\n";
+        $full_original_text = "";
+        $full_corrected_text = "";
+
+        foreach ($document->chapters as $chapter) {
+            $full_original_text .= $chapter->chapter_title . $separator . $chapter->original_text . $separator;
+            
+            // Jika chapter sudah 'Completed', gunakan teks koreksi.
+            // Jika tidak, gunakan teks asli sebagai fallback.
+            if ($chapter->status === 'Completed' && !empty($chapter->corrected_text)) {
+                $full_corrected_text .= $chapter->chapter_title . $separator . $chapter->corrected_text . $separator;
+            } else {
+                $full_corrected_text .= $chapter->chapter_title . $separator . $chapter->original_text . $separator;
+            }
+        }
+
+        // Render Blade HTML (versi khusus untuk PDF)
+        $html = view('pdf.correction', [
+            'title'          => $document->file_name,
+            'corrected_text' => trim($full_corrected_text),
+            'original_text'  => trim($full_original_text),
+        ])->render();
+
+        // Buat PDF dari HTML Blade
+        $pdf = Pdf::loadHTML($html)->setPaper('a4');
+
+        $filename = 'koreksi-'.Str::slug($document->file_name).'-'.now()->format('Ymd-His').'.pdf';
+
+        return $pdf->download($filename);
     }
 
-    if (empty($document->corrected_text)) {
-        return back()->with('error', 'Hasil koreksi belum tersedia.');
-    }
 
-    // Render Blade HTML (versi khusus untuk PDF)
-    $html = view('pdf.correction', [
-        'title'          => $document->file_name,
-        'corrected_text' => $document->corrected_text,
-        'original_text'  => $document->original_text,
-    ])->render();
-
-    // Buat PDF dari HTML Blade
-    $pdf = Pdf::loadHTML($html)->setPaper('a4');
-
-    $filename = 'koreksi-'.Str::slug($document->file_name).'-'.now()->format('Ymd-His').'.pdf';
-
-    return $pdf->download($filename);
-    }
-
-    /**
-     * Stream or redirect to the original uploaded PDF so users can view it while processing.
-     */
+    // ... (Fungsi viewOriginal tetap SAMA) ...
     public function viewOriginal($id)
     {
         $document = Document::findOrFail($id);
-
-        // Allow access if the request carries a valid signed URL OR the
-        // authenticated user owns the document. This enables the worker
-        // to fetch the original file via a temporary signed URL when the
-        // worker cannot access the web container's local filesystem.
         $hasValidSignature = request()->hasValidSignature();
         $isOwner = Auth::check() && $document->user_id === Auth::id();
         
-        \Log::info('viewOriginal access attempt', [
-            'document_id' => $document->id,
-            'has_valid_signature' => $hasValidSignature,
-            'is_authenticated' => Auth::check(),
-            'is_owner' => $isOwner,
-            'request_url' => request()->fullUrl(),
-            'has_signature_param' => request()->has('signature'),
-            'has_expires_param' => request()->has('expires'),
-            'signature_value' => request()->get('signature'),
-            'expires_value' => request()->get('expires'),
-            'current_time' => time()
-        ]);
-        
-        if (! $hasValidSignature) {
-            if (! $isOwner) {
-                \Log::warning('viewOriginal access denied - no valid signature and not owner', [
-                    'document_id' => $document->id,
-                    'url' => request()->fullUrl()
-                ]);
-                abort(403, 'Anda tidak memiliki akses ke file ini.');
-            }
+        if (! $hasValidSignature && ! $isOwner) {
+            abort(403, 'Anda tidak memiliki akses ke file ini.');
         }
 
         $path = $document->file_location;
@@ -221,47 +220,22 @@ class DocumentController extends Controller
             abort(404, 'File tidak ditemukan.');
         }
 
-    // Prefer the disk recorded on the Document (if present) so files stored on
-    // S3/MinIO or other remote disks are served correctly. Fall back to the
-    // configured default or 'public' for legacy records.
-    $diskName = $document->disk ?: config('filesystems.default') ?: 'public';
-
+        $diskName = $document->disk ?: config('filesystems.default') ?: 'public';
+        $disk = \Storage::disk($diskName);
+        
         try {
-            $disk = \Storage::disk($diskName);
-
-            // For local drivers we can return a local file path
             if (method_exists($disk, 'path')) {
                 $localPath = $disk->path($path);
                 if (file_exists($localPath)) {
-                    return response()->file($localPath, [
-                        'Content-Type' => 'application/pdf',
-                        'Content-Disposition' => 'inline; filename="' . basename($localPath) . '"'
-                    ]);
+                    return response()->file($localPath, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline']);
                 }
             }
-
-            // If the disk supports temporaryUrl (S3/compatible), redirect to it
             if (method_exists($disk, 'temporaryUrl')) {
-                $url = $disk->temporaryUrl($path, now()->addMinutes(15));
-                return redirect()->away($url);
+                return redirect()->away($disk->temporaryUrl($path, now()->addMinutes(15)));
             }
-
-            // Fallback: stream the file through the app
-            $stream = $disk->readStream($path);
-            if ($stream === false) {
-                abort(404, 'File tidak dapat diakses.');
-            }
-
-            return response()->stream(function () use ($stream) {
-                fpassthru($stream);
-                if (is_resource($stream)) {
-                    fclose($stream);
-                }
-            }, 200, [
-                'Content-Type' => 'application/pdf',
-                'Content-Disposition' => 'inline; filename="' . ($document->file_name ?: 'document') . '.pdf"'
-            ]);
-
+            return response()->stream(function () use ($disk, $path) {
+                fpassthru($disk->readStream($path));
+            }, 200, ['Content-Type' => 'application/pdf', 'Content-Disposition' => 'inline']);
         } catch (\Exception $e) {
             \Log::error('Error serving original file', ['document_id' => $document->id, 'error' => $e->getMessage()]);
             abort(500, 'Terjadi kesalahan saat mengakses file.');

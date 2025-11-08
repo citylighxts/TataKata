@@ -3,6 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\Document;
+use App\Models\DocumentChapter;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -12,19 +13,18 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Smalot\PdfParser\Parser;
 use Illuminate\Support\Facades\Cache;
-// use Illuminate\Http\Client\Pool;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Http as HttpFacade;
-
+use Illuminate\Support\Facades\DB;
 
 class ProcessDocumentCorrection implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
     protected $document;
     protected $documentId;
-    public $timeout = 900; // 15 minutes total job timeout
+    public $timeout = 900;
 
     public function __construct(Document $document)
     {
@@ -40,245 +40,103 @@ class ProcessDocumentCorrection implements ShouldQueue
             return;
         }
 
+        $document->update([
+            'original_text' => null,
+            'corrected_text' => null,
+        ]);
+
         $this->pushProgress($document, 'Memulai pemrosesan dokumen...', 'Processing');
 
         $tempFile = null;
         try {
             $tempFile = tempnam(sys_get_temp_dir(), 'doc_');
             $signedUrl = URL::temporarySignedRoute('correction.original', now()->addMinutes(10), ['document' => $document->id]);
-            
-            Log::info('Worker fetching file via signed URL', [
-                'document_id' => $document->id,
-                'signed_url' => $signedUrl,
-                'app_url' => config('app.url'),
-            ]);
-            
             $response = HttpFacade::withOptions(['timeout' => 60, 'sink' => $tempFile])->get($signedUrl);
 
-            $status = method_exists($response, 'status') ? $response->status() : null;
-            if (! ($response->successful() || $status === 200)) {
-                $body = method_exists($response, 'body') ? $response->body() : null;
-                Log::warning('Fallback download failed - non-200 status', ['document_id' => $document->id, 'status' => $status, 'body_snippet' => is_string($body) ? substr($body, 0, 500) : null]);
-                @unlink($tempFile);
-                $document->update(['upload_status' => 'Failed', 'details' => 'File tidak ditemukan oleh worker.']);
-                return;
+            if (!$response->successful()) {
+                 throw new \Exception('Gagal mengunduh file via signed URL. Status: ' . $response->status());
             }
-
-            $contentType = $response->header('Content-Type');
-            if ($contentType && stripos($contentType, 'application/pdf') === false && stripos($contentType, 'text/html') !== false) {
-                 Log::warning('Fallback download returned HTML instead of PDF', [ 'document_id' => $document->id]);
-                @unlink($tempFile);
-                $document->update(['upload_status' => 'Failed', 'details' => 'Worker received HTML error page instead of PDF.']);
-                return;
-            }
-
             $file_path = $tempFile; 
-            Log::info("Fallback download successful for Document ID {$document->id}, using temp file: {$tempFile}", ['document_id' => $document->id]);
+            Log::info("File downloaded to temp path: {$file_path}", ['document_id' => $document->id]);
 
-            
         } catch (\Throwable $e) {
-            Log::warning('Fallback download via signed URL failed: ' . $e->getMessage(), ['document_id' => $document->id, 'exception' => $e->getTraceAsString()]);
+            Log::warning('File download via signed URL failed: ' . $e->getMessage(), ['document_id' => $document->id]);
             if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
             $document->update(['upload_status' => 'Failed', 'details' => 'File tidak ditemukan oleh worker.']);
             return;
         }
 
         try {
-            
+            // Cek PDF Header
             try {
-                $isPdf = false;
-                if (!empty($file_path) && is_file($file_path) && is_readable($file_path)) {
-                    $h = @fopen($file_path, 'rb');
-                    if ($h !== false) {
-                        $first = @fread($h, 5);
-                        @fclose($h);
-                        if ($first === '%PDF-' || (is_string($first) && strpos($first, '%PDF') === 0)) {
-                            $isPdf = true;
-                        }
-                    }
-                }
-                if (! $isPdf) {
-                    Log::error("Document Correction Failed for ID {$document->id}: Invalid PDF data: Missing `%PDF-` header.");
-                    $document->update(['upload_status' => 'Failed', 'details' => 'Invalid PDF data: Missing %PDF header.']);
-                    if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
-                    return;
+                $h = @fopen($file_path, 'rb');
+                $first = @fread($h, 5);
+                @fclose($h);
+                if (strpos($first, '%PDF') === false) { 
+                     throw new \Exception('Invalid PDF data: Missing %PDF header.');
                 }
             } catch (\Throwable $e) {
                 Log::warning('PDF header check failed: ' . $e->getMessage(), ['document_id' => $document->id]);
             }
 
             $parser = new Parser();
-            $this->pushProgress($document, 'Membaca isi dokumen...');
-            $pdf = $parser->parseFile($file_path);
-            $original_text = trim($pdf->getText());
-
-            if (empty($original_text)) {
-                $document->update(['upload_status' => 'Failed', 'details' => 'Gagal mengekstrak teks dari PDF.']);
-                if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
-                return;
-            }
-
-            // ... (Logika logging PDF extraction & cleaning text tetap sama) ...
-            $clean_text = mb_convert_encoding($original_text, 'UTF-8', 'UTF-8');
-            $clean_text = preg_replace('/[[:cntrl:]]/', '', $clean_text);
-            $original_text = $clean_text;
+            $this->pushProgress($document, 'Membaca dan mempartisi dokumen (per halaman)...');
             
-            $this->pushProgress($document, 'Mempersiapkan dokumen untuk dikoreksi...');
+            $pdf = $parser->parseFile($file_path);
+            $pages = $pdf->getPages();
+            Log::info("Total pages found: " . count($pages), ['document_id' => $document->id]);
 
-            // Memanggil method 'correctTextWithOllama' yang baru
-            $corrected_text = $this->correctTextWithOllama($original_text);
-
-            if (str_starts_with($corrected_text, 'ERROR:')) {
-                throw new \Exception($corrected_text);
+            $chapters_data = $this->splitByBab($pages); 
+            
+            if (empty($chapters_data)) {
+                 throw new \Exception('Gagal memecah dokumen. Tidak ada bab valid (BAB I, BAB II, dst.) yang ditemukan.');
             }
 
-            // ... (Logika menyimpan hasil & update status 'Completed' tetap sama) ...
-            $document->original_text = $original_text;
-            $document->corrected_text = $corrected_text;
-            $document->upload_status = 'Completed';
-            $this->pushProgress($document, 'Koreksi selesai.', 'Completed');
-            $document->save();
-            $document->fresh();
+            $totalChapters = count($chapters_data);
+            Log::info("Document {$this->documentId} split into {$totalChapters} chapters. Saving to DB...");
+
+            DocumentChapter::where('document_id', $this->documentId)->delete();
+
+            DB::transaction(function () use ($chapters_data, $document, $totalChapters) {
+                $createdChapters = 0;
+                foreach ($chapters_data as $index => $chapter) {
+                    if (empty($chapter['isi'])) continue;
+                    
+                    DocumentChapter::create([
+                        'document_id' => $this->documentId,
+                        'chapter_title' => $chapter['judul'],
+                        'chapter_order' => $index + 1,
+                        'original_text' => $chapter['isi'],
+                        'status' => 'Pending',
+                    ]);
+                    $this->pushProgress($document, "Menyimpan {$chapter['judul']}...");
+                    $createdChapters++;
+                }
+
+                if ($createdChapters === 0) {
+                    throw new \Exception('Tidak ada bab yang valid ditemukan setelah pemrosesan.');
+                }
+
+                $document->upload_status = 'Ready'; 
+                $document->details = "Dokumen berhasil dipecah menjadi {$createdChapters} bab dan siap untuk dikoreksi.";
+                $this->pushProgress($document, 'Dokumen siap.', 'Ready');
+                $document->save();
+            });
 
             if (!empty($tempFile) && file_exists($tempFile)) {
                 @unlink($tempFile);
             }
 
-            Log::info("Document ID {$document->id} corrected successfully.");
+            Log::info("Document ID {$this->documentId} split successfully (page-by-page).");
 
         } catch (\Exception $e) {
-            Log::error("Document Correction Failed for ID {$document->id}: " . $e->getMessage());
+            Log::error("Document Splitting Failed for ID {$this->documentId}: " . $e->getMessage());
             if (!empty($tempFile) && file_exists($tempFile)) {
                 @unlink($tempFile);
             }
-            $document->update(['upload_status' => 'Failed', 'details' => 'Pemrosesan gagal: ' . substr($e->getMessage(), 0, 250)]);
+            $document->update(['upload_status' => 'Failed', 'details' => 'Pemecahan gagal: ' . substr($e->getMessage(), 0, 250)]);
         }
     }
-
-    /**
-     * Mengoreksi teks menggunakan Ollama.
-     */
-    private function correctTextWithOllama($text)
-    {
-        // Start timing for diagnostics
-        $jobStart = microtime(true);
-
-        try {
-            // Cache check untuk seluruh teks
-            $cacheKey = 'doc_correction_ollama_' . sha1($text); // Tambahkan prefix ollama
-            if (Cache::has($cacheKey)) {
-                Log::info("Document correction cache hit for full document (key={$cacheKey}). Returning cached result.");
-                return Cache::get($cacheKey);
-            }
-
-            // Ambil info API Ollama dari .env, dengan default
-            $modelName = env('OLLAMA_MODEL', 'qwen2.5:14b');
-            $url = env('OLLAMA_URL', 'http://127.0.0.1:11434/api/generate');
-
-            // Timeout panjang (10 menit) untuk 1 request besar
-            $timeoutDuration = 600; 
-
-            $textLen = mb_strlen($text, 'UTF-8');
-            Log::info("Processing document correction with Ollama: length={$textLen} chars, 1 chunk (full text)", [
-                'document_id' => $this->documentId,
-                'text_length' => $textLen,
-                'ollama_model' => $modelName,
-                'ollama_url' => $url,
-            ]);
-
-            // Update progress di UI
-            $document = Document::find($this->documentId);
-            if (! $document) {
-                Log::warning("Document ID {$this->documentId} not found when updating progress; aborting.");
-                return "ERROR: Document not found.";
-            }
-            $this->pushProgress($document, "Mengoreksi dokumen...");
-
-            // Buat 1 payload untuk seluruh teks (format Ollama)
-            $payload = [
-                'model' => $modelName,
-                'prompt' => "PERAN ANDA: Anda adalah editor bahasa Indonesia yang sangat presisi dan berfokus pada KBBI dan PUEBI.\n\n" .
-                "TUGAS ANDA: Menerapkan koreksi ejaan (typo) dan tata bahasa (KBBI & PUEBI) pada Teks Asli terlampir setelah penjelasan ATURAN WAJIB dan OUTPUT.\n\n" .
-                "ATURAN WAJIB:\n" .
-                "1. FOKUS UTAMA: HANYA perbaiki kesalahan ejaan yang jelas (salah ketik, kata tidak baku), tata bahasa, tanda baca, dan penggunaan huruf kapital. Jangan menambahkan jawaban sendiri.\n" .
-                "2. DILARANG KERAS mengubah gaya bahasa, struktur kalimat, atau pilihan kata (diksi) yang sudah benar, meskipun ada cara lain (bentuk parafrase) untuk menyatakannya.\n" .
-                "3. DILARANG KERAS menambah, mengurangi, atau mengubah konten, makna, atau ide dari Teks Asli.\n" .
-                "4. Jaga tata letak, paragraf, dan jeda baris semirip mungkin dengan Teks Asli. Jika ada tabel, pertahankan bentuk tabel (atau setidaknya dipartisi).\n\n" .
-                "5. Gunakan bahasa Indonesia yang BAKU dan FORMAL sesuai KBBI dan PUEBI.\n\n" .
-                "6. DILARANG KERAS memberikan ringkasan pada hasil koreksi. Pilih salah satu section dari laporan yang penulisannya paling melenceng serta berikan keterangan section (misal bagian Pendahuluan, Hasil dan Pembahasan, atau Kesimpulan). DILARANG KERAS menambah-nambah section.\n\n" .
-                "OUTPUT: Berikan HANYA rekomendasi koreksi dan JANGAN BERIKAN RINGKASAN. Hanya perbaiki tata bahasa dan ejaan dari Teks Asli saja sesuai dengan ATURAN WAJIB.\n\n" .
-                "--- TEKS ASLI ---\n" . $text,
-                'stream' => false, // hasil prompt masi super ngaco malah ngasi kesimpulan
-            ];
-
-            // Kirim 1 request HTTP
-            $response = Http::withOptions(['timeout' => $timeoutDuration])->post($url, $payload);
-
-            // Handle jika request gagal
-            if (! $response->successful()) {
-                $status = method_exists($response, 'status') ? $response->status() : 'unknown';
-                $errorBody = $response->body();
-                Log::error("Ollama HTTP Error (Full Text): status={$status} body=" . substr($errorBody, 0, 500));
-                
-                // Cek error spesifik jika teks terlalu besar
-                if (str_contains($errorBody, '400 Bad Request') || str_contains($errorBody, 'too large') || str_contains($errorBody, 'REQUEST_TOO_LARGE') || str_contains($errorBody, 'context window')) {
-                    return "ERROR: Teks terlalu besar untuk diproses sekaligus oleh model.";
-                }
-                
-                return "ERROR: Gagal menghubungi API Ollama (Status: {$status})";
-            }
-
-            // Ekstrak hasil dari 1 response (format Ollama)
-            $extracted = null;
-            try {
-                $json = $response->json();
-                Log::info("Ollama response JSON (Full Text)", [
-                    'document_id' => $this->documentId,
-                    'has_response_key' => isset($json['response']),
-                ]);
-
-                if (!empty($json['response'])) {
-                    $extracted = $json['response'];
-                    Log::info("Extracted via 'response' key (Full Text)");
-                } else {
-                     Log::warning("Ollama response missing 'response' key.", ['response_json' => $json]);
-                }
-
-            } catch (\Throwable $jsonErr) {
-                Log::error("JSON parsing failed (Full Text): " . $jsonErr->getMessage());
-                return "ERROR: Gagal membaca balasan dari API Ollama.";
-            }
-
-            if (empty($extracted)) {
-                Log::warning("No text extracted from JSON (Full Text)");
-                return "ERROR: API Ollama tidak memberikan hasil koreksi.";
-            }
-
-            $result = trim($extracted);
-
-            // Cache hasil lengkapnya
-            Cache::put($cacheKey, $result, now()->addDays(7));
-
-            $totalTook = round(microtime(true) - $jobStart, 3);
-            Log::info("Document correction finished (Full Text): total_time={$totalTook}s");
-
-            return $result;
-
-        } catch (\Exception $e) {
-            Log::error('Ollama Request Exception (Job): ' . $e->getMessage());
-            return "ERROR: " . $e->getMessage();
-        }
-    }
-
-    // private function sendChunkWithRetries(string $url, string $text, int $timeoutDuration)
-    // {
-    //     return new class {
-    //         public function successful() { return false; }
-    //         public function status() { return 0; }
-    //         public function body() { return 'no-response'; }
-    //         public function json() { return []; }
-    //     };
-    // }
 
     private function pushProgress(Document $document, string $message, string $status = null)
     {
@@ -287,17 +145,156 @@ class ProcessDocumentCorrection implements ShouldQueue
             if (!is_array($log)) $log = [];
             $entry = ['ts' => now()->toDateTimeString(), 'message' => $message];
             $log[] = $entry;
-            // keep last 50 entries only
             if (count($log) > 50) $log = array_slice($log, -50);
 
             $update = ['progress_log' => $log, 'details' => $message];
             if (!is_null($status)) {
                 $update['upload_status'] = $status;
             }
-
             $document->update($update);
         } catch (\Throwable $e) {
             Log::warning("pushProgress failed for Document ID {$document->id}: " . $e->getMessage());
         }
+    }
+
+    // =================================================================
+    // == FUNGSI SPLITBYBAB BARU (METODE PAGE-BY-PAGE v6) ==
+    // =================================================================
+
+    /**
+     * Membersihkan teks per halaman (Versi AMAN)
+     */
+    private function cleanPageText(string $text): string
+    {
+        // Gabung hyphen
+        $text = preg_replace('/(\w)-\n(\w)/', '$1$2', $text); 
+        // Normalisasi newline
+        $text = preg_replace('/\n{3,}/', "\n\n", $text); 
+        
+        return trim($text);
+    }
+
+    /**
+     * Memecah dokumen berdasarkan array Halaman ($pages)
+     */
+    private function splitByBab(array $pages): array
+    {
+        $chapters = [];
+        $currentChapterContent = "";
+        $currentChapterTitle = "";
+        $recording = false;
+
+        // ==================
+        // PERBAIKAN REGEX v6
+        // ==================
+        // Pola nomor Bab: Mencari nomor Romawi (I-X) atau Angka (1-10) atau Cyrillic (ІШ)
+        // Ditambahkan \b (word boundary) agar "I" tidak cocok dengan "III"
+        $roman = 'X|IX|IV|V?I{0,3}'; // I, II, III, IV, V, VI, VII, VIII, IX, X
+        $arabic = '\d+'; // 1, 2, 3...
+        $cyrillic = 'ІШ'; // Khusus untuk BAB III Anda
+        
+        // Pola Header Bab (Lengkap):
+        $regex_chapter_header = '/^((?:BAB|ВАВ)\s+(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b\s*\n\s*[A-Z][A-Z\s&]+)/im';
+        
+        // Pola Cek DAFTAR ISI:
+        // Cek jika header bab diikuti oleh spasi/titik dan angka (nomor halaman ToC)
+        $regex_is_toc_line = '/^((?:BAB|ВАВ)\s+(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b\s*\n\s*[A-Z][A-Z\s&]+)[\s.]*\d+/im';
+        
+        // Pola Stop
+        $regex_stop_signals = '/^(DAFTAR PUSTAKA|LAMPIRAN)/i';
+
+        foreach ($pages as $pageNum => $page) {
+            // Normalisasi karakter aneh "ВАВ ІШ" -> "BAB III"
+            // (Tetap dilakukan untuk membersihkan judul, meskipun regex sudah menangani)
+            $rawPageText = str_replace(["ВАВ ІШ", "ВАВ III"], "BAB III", $page->getText());
+            $pageText = $this->cleanPageText($rawPageText);
+
+            if (empty($pageText)) {
+                continue;
+            }
+
+            // 1. Cek apakah kita harus BERHENTI merekam (Daftar Pustaka, dll)
+            if ($recording && preg_match($regex_stop_signals, $pageText)) {
+                Log::info("Stop signal found (DAFTAR PUSTAKA) at page {$pageNum}. Stopping recording.");
+                $recording = false;
+                if (!empty(trim($currentChapterContent))) {
+                    $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
+                }
+                break; // Keluar dari loop utama
+            }
+
+            // 2. Cek apakah halaman ini mengandung Header Bab
+            if (preg_match_all($regex_chapter_header, $pageText, $matches, PREG_SET_ORDER)) {
+                
+                $textToAppend = $pageText;
+                
+                // Cari semua header ToC di halaman ini SEKALI SAJA
+                $toc_headers_on_this_page = [];
+                if (preg_match_all($regex_is_toc_line, $pageText, $toc_matches)) {
+                    foreach ($toc_matches[1] as $toc_header_raw) {
+                         $toc_headers_on_this_page[] = trim(preg_replace('/\s+/', ' ', $toc_header_raw));
+                    }
+                }
+
+                foreach ($matches as $match) {
+                    $newTitle = trim(preg_replace('/\s+/', ' ', $match[1]));
+
+                    // 3. SANITY CHECK: Apakah header ini ada di daftar ToC yang kita temukan?
+                    if (in_array($newTitle, $toc_headers_on_this_page)) {
+                        Log::info("Found header ('{$newTitle}') at page {$pageNum}, but it's a Table of Contents entry. Ignoring.");
+                        // Hapus header ToC ini dari teks agar tidak ter-append jika kita sedang merekam
+                        $textToAppend = str_replace($match[0], '', $textToAppend); 
+                        continue; // Lanjut ke match berikutnya di halaman yang sama
+                    }
+
+                    // 4. JIKA INI BUKAN DAFTAR ISI: Ini adalah header bab yang asli
+                    
+                    // 5. Jika kita BELUM merekam (ini BAB I)
+                    if (!$recording) {
+                        Log::info("Found REAL BAB I ('{$newTitle}') at page {$pageNum}. Starting recording.");
+                        $recording = true;
+                        $currentChapterTitle = $newTitle;
+                        // Hapus judul dari isi teks
+                        $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
+                    
+                    // 6. Jika kita SUDAH merekam (ini BAB II, III, dst.)
+                    } else {
+                        Log::info("Found new chapter ('{$newTitle}') at page {$pageNum}. Saving previous chapter.");
+                        // Simpan bab sebelumnya
+                        if (!empty(trim($currentChapterContent))) {
+                            $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
+                        }
+                        // Mulai bab baru
+                        $currentChapterTitle = $newTitle;
+                        $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
+                        $currentChapterContent = ""; // Reset konten
+                    }
+                } // Selesai loop $matches
+
+                // 7. Tambahkan sisa teks di halaman ini (jika ada) ke bab saat ini
+                if ($recording && !empty(trim($textToAppend))) {
+                    $currentChapterContent .= "\n\n" . $textToAppend;
+                }
+            
+            // 8. Jika ini BUKAN halaman bab baru, TAPI kita sedang merekam
+            } elseif ($recording) {
+                // Tambahkan teks halaman ini ke bab yang sedang berjalan
+                $currentChapterContent .= "\n\n" . $pageText;
+            }
+            
+            // 9. Jika kita belum merekam (masih di Abstrak, dll), abaikan saja.
+        }
+
+        // Simpan bab terakhir yang tersisa setelah loop selesai
+        if ($recording && !empty(trim($currentChapterContent))) {
+            Log::info("Saving last chapter ('{$currentChapterTitle}').");
+            $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
+        }
+        
+        if (empty($chapters)) {
+             Log::warning("Page-by-page loop finished but no valid chapters were recorded.", ['doc_id' => $this->documentId ?? null]);
+        }
+
+        return $chapters;
     }
 }

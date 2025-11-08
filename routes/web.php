@@ -5,6 +5,7 @@ use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\TextCheckerController;
 use App\Http\Controllers\FastAPIController;
+use App\Http\Controllers\ChapterController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -33,6 +34,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/correction/check-status/{document}', [DocumentController::class, 'checkStatus'])->name('correction.check-status');
     Route::post('/history/bulk-delete', [\App\Http\Controllers\HistoryController::class, 'bulkDelete'])->name('history.bulk-delete.post');
     Route::get('/correction/{document}', [DocumentController::class, 'showCorrection'])->name('correction.show');
+
+    Route::prefix('chapter/{chapter}')->name('chapter.')->group(function () {
+        Route::post('/correct', [ChapterController::class, 'startCorrection'])->name('correct');
+        Route::get('/status', [ChapterController::class, 'checkStatus'])->name('status');
+    });
 });
 
 require __DIR__.'/auth.php';
