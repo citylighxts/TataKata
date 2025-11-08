@@ -1,0 +1,13 @@
+version: 2
+authtoken: 34myNb9hUyf7jEkX9f0AaTIcLFx_tm7c96aerZsNFoKQ3b93
+
+tunnels:
+  # Ini untuk backend Laravel
+  backend:
+    proto: http
+    addr: 8000
+    
+  # Ini untuk frontend Vite
+  frontend:
+    proto: http
+    addr: 5173
