@@ -182,133 +182,153 @@ class ProcessDocumentCorrection implements ShouldQueue
     private function splitByBab(array $pages): array
     {
         try {
+            // Ambil daftar isi (peta bab)
+            $toc = $this->extractTOC($pages);
             $chapters = [];
-            $currentChapterContent = "";
-            $currentChapterTitle = "";
-            $recording = false;
 
-            // ==================
-            // PERBAIKAN REGEX v12
-            // ==================
-            
-            // Pola nomor Bab: Romawi (I-X), Cyrillic (ІШ ATAU IІI), atau Angka (1-10, dst)
-            $roman = 'X|IX|IV|V?I{0,3}'; // I, II, III, IV, V, VI, VII, VIII, IX, X
-            $arabic = '\d+'; // 1, 2, 3...
-            $cyrillic = '(?:ІШ|ІII)'; // (FIX) Mencocokkan ІШ ATAU ІII
-            
-            $number_pattern = '(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b'; 
-            $title_pattern = '[A-Z][A-Z\s&]+';
-            $separator_pattern = '(?:\s+|\s*\n\s*)'; 
-
-            // Regex Header Bab (Lengkap):
-            // Grup 1: (BAB 1 JUDUL)
-            // Grup 2: (JUDUL \n BAB 1)
-            // Grup 3: (BAB 1) (saja)
-            $regex_chapter_header = '/^((?:BAB|ВАВ)\s+' . $number_pattern . $separator_pattern . $title_pattern . ')|' .
-                                  '^(' . $title_pattern . $separator_pattern . '(?:BAB|ВАВ)\s+' . $number_pattern . ')|' .
-                                  '^((?:BAB|ВАВ)\s+' . $number_pattern . ')/im';
-            
-            // Regex untuk MENGHAPUS awalan "BAB X" dari judul
-            $regex_strip_bab_prefix = '/^(?:BAB|ВАВ)\s+(?:' . $roman . '|' . $cyrillic . '|' . $arabic . ')\b\s*/i';
-
-            // Pola Cek Daftar Isi (ToC) v11/v12 (AMAN):
-            // Cek jika halaman berisi kata "DAFTAR ISI", "DAFTAR GAMBAR", dll.
-            $regex_is_toc_page = '/(DAFTAR ISI|DAFTAR GAMBAR|DAFTAR TABEL|DAFTAR KODE SUMBER)/i';
-            
-            // Pola Stop
-            $regex_stop_signals = '/^(DAFTAR PUSTAKA|LAMPIRAN)/i';
-            // ==================
+            // Gabungkan semua teks halaman jadi satu string
+            $fullText = '';
+            $tocEndFound = false;
 
             foreach ($pages as $pageNum => $page) {
-                $rawPageText = $page->getText();
-                $pageText = $this->cleanPageText($rawPageText); 
+                $text = $this->cleanPageText($page->getText());
 
-                if (empty($pageText)) {
+                // Deteksi akhir daftar isi → mulai merekam isi bab setelahnya
+                if (!$tocEndFound && preg_match('/DAFTAR\s+ISI/i', $text)) {
+                    Log::info("Mulai halaman daftar isi di halaman {$pageNum}");
                     continue;
                 }
 
-                // Normalisasi (tetap dilakukan untuk membersihkan judul)
-                $pageText = str_replace(["ВАВ ІШ", "ВАВ III", "ВАВ ІII"], "BAB III", $pageText);
-
-                // 1. Cek Stop
-                if ($recording && preg_match($regex_stop_signals, $pageText)) {
-                    Log::info("Stop signal found (DAFTAR PUSTAKA/LAMPIRAN) at page {$pageNum}. Stopping recording.");
-                    $recording = false;
-                    if (!empty(trim($currentChapterContent))) {
-                        $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
+                // Kalau halaman sudah bukan daftar isi lagi, mulai gabung konten
+                if ($toc && !$tocEndFound) {
+                    // Jika halaman mengandung kata 'BAB I' atau 'BAB 1', berarti daftar isi sudah selesai
+                    if (preg_match('/\bBAB\s+(I|1)\b/i', $text)) {
+                        $tocEndFound = true;
+                        Log::info("Akhir daftar isi ditemukan di halaman {$pageNum}");
+                    } else {
+                        continue; // Masih di halaman daftar isi
                     }
-                    break; 
                 }
 
-                // 2. SANITY CHECK (ToC) v11/v12
-                if (preg_match($regex_is_toc_page, $pageText)) {
-                    Log::info("Page {$pageNum} identified as Table of Contents (DAFTAR ISI, etc). Skipping all headers on this page.");
-                    continue; // Lanjut ke halaman berikutnya
-                }
-
-                // 3. Cek Header Bab (HANYA jika bukan halaman ToC)
-                if (preg_match_all($regex_chapter_header, $pageText, $matches, PREG_SET_ORDER)) {
-                    
-                    $textToAppend = $pageText;
-                    
-                    foreach ($matches as $match) {
-                        $fullMatchedHeader = trim(preg_replace('/\s+/', ' ', $match[0]));
-
-                        // 4. Ekstraksi Judul (v11/v12)
-                        $newTitle = trim(preg_replace($regex_strip_bab_prefix, '', $fullMatchedHeader));
-                        
-                        if (empty($newTitle)) {
-                            $newTitle = $fullMatchedHeader;
-                        }
-                        
-                        $isBab1 = preg_match('/^(?:BAB|ВАВ)\s+(?:I|1)\b/i', $fullMatchedHeader);
-
-                        // 5. Logika Merekam
-                        if (!$recording) {
-                            if ($isBab1) { 
-                                Log::info("Found REAL BAB I ('{$newTitle}') at page {$pageNum}. Starting recording.");
-                                $recording = true;
-                                $currentChapterTitle = $newTitle;
-                                $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
-                            } else {
-                                 Log::info("Found header ('{$newTitle}') but it's not BAB I. Ignoring until BAB I is found.");
-                            }
-                        } else {
-                            Log::info("Found new chapter ('{$newTitle}') at page {$pageNum}. Saving previous chapter.");
-                            if (!empty(trim($currentChapterContent))) {
-                                $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
-                            }
-                            $currentChapterTitle = $newTitle;
-                            $textToAppend = trim(preg_replace('/' . preg_quote($match[0], '/') . '/', '', $textToAppend, 1));
-                            $currentChapterContent = ""; 
-                        }
-                    } 
-
-                    // 6. Tambahkan sisa teks
-                    if ($recording && !empty(trim($textToAppend))) {
-                        $currentChapterContent .= "\n\n" . $textToAppend;
-                    }
-                
-                } elseif ($recording) {
-                    $currentChapterContent .= "\n\n" . $pageText;
+                if ($tocEndFound || !$toc) {
+                    $fullText .= "\n\n" . $text;
                 }
             }
 
-            // Simpan bab terakhir
-            if ($recording && !empty(trim($currentChapterContent))) {
-                Log::info("Saving last chapter ('{$currentChapterTitle}').");
-                $chapters[] = ['judul' => $currentChapterTitle, 'isi' => trim($currentChapterContent)];
-            }
-            
-            if (empty($chapters)) {
-                Log::warning("Page-by-page loop finished but no valid chapters were recorded.", ['doc_id' => $this->documentId ?? null]);
+            // Normalisasi teks
+            $fullText = str_replace(["ВАВ", "І", "Ш"], ["BAB", "I", "II"], $fullText);
+
+            if ($toc && count($toc) > 0) {
+                Log::info("Menggunakan TOC sebagai peta bab...");
+                foreach ($toc as $i => $entry) {
+                    $currentTitle = $entry['judul'];
+                    $currentNumber = $entry['bab'];
+                    $next = $toc[$i + 1] ?? null;
+
+                    $startPattern = '/(?:BAB|ВАВ)\s+' . preg_quote($currentNumber, '/') . '\s+' . preg_quote($currentTitle, '/') . '/i';
+                    $endPattern = $next
+                        ? '/(?:BAB|ВАВ)\s+' . preg_quote($next['bab'], '/') . '\s+' . preg_quote($next['judul'], '/') . '/i'
+                        : null;
+
+                    $startPos = null;
+                    $endPos = null;
+
+                    if (preg_match($startPattern, $fullText, $m, PREG_OFFSET_CAPTURE)) {
+                        $startPos = $m[0][1];
+                    }
+
+                    if ($endPattern && preg_match($endPattern, $fullText, $m2, PREG_OFFSET_CAPTURE)) {
+                        $endPos = $m2[0][1];
+                    }
+
+                    if ($startPos !== null) {
+                        $chapterText = substr($fullText, $startPos, $endPos ? $endPos - $startPos : null);
+                        $chapterText = trim(preg_replace($startPattern, '', $chapterText, 1));
+                        $chapters[] = [
+                            'judul' => "BAB {$currentNumber} {$currentTitle}",
+                            'isi' => trim($chapterText)
+                        ];
+                    }
+                }
+            } else {
+                Log::info("TOC tidak ditemukan. Fallback ke deteksi regex BAB manual...");
+                $chapters = $this->splitByRegex($pages);
             }
 
             return $chapters;
 
         } catch (\Exception $e) {
-            Log::error("splitByBab failed: " . $e->getMessage(), ['doc_id' => $this->documentId ?? null]);
-            return []; // Kembalikan array kosong jika ada error
+            Log::error("splitByBab failed: " . $e->getMessage());
+            return [];
         }
+    }
+
+    private function extractTOC(array $pages): ?array
+    {
+        try {
+            $regex_toc_header = '/DAFTAR\s+ISI/i';
+            $regex_toc_entry = '/\b(?:BAB|ВАВ)\s+([IVXLC\d]+)\s+([A-Z][A-Z\s\-&]+)/m';
+            $regex_stop = '/^(DAFTAR PUSTAKA|LAMPIRAN)/i';
+
+            $tocText = '';
+            $foundTOC = false;
+
+            foreach ($pages as $pageNum => $page) {
+                $pageText = $this->cleanPageText($page->getText());
+                if (!$foundTOC && preg_match($regex_toc_header, $pageText)) {
+                    $foundTOC = true;
+                    $tocText .= "\n" . $pageText;
+                    continue;
+                }
+                if ($foundTOC) {
+                    if (preg_match($regex_stop, $pageText)) break;
+                    $tocText .= "\n" . $pageText;
+                }
+            }
+
+            if (empty($tocText)) return null;
+
+            preg_match_all($regex_toc_entry, $tocText, $matches, PREG_SET_ORDER);
+            $tocEntries = [];
+
+            foreach ($matches as $match) {
+                $tocEntries[] = [
+                    'bab' => trim($match[1]),
+                    'judul' => trim(preg_replace('/\s+/', ' ', $match[2])),
+                ];
+            }
+
+            return $tocEntries ?: null;
+
+        } catch (\Exception $e) {
+            Log::error("extractTOC failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function extractSubBab(string $chapterText): array
+    {
+        $subbabList = [];
+
+        // Pola umum: "1.1", "1.2.3", atau "I.1"
+        $regex_subbab = '/(?<=\n|\r|^)(\d+\.\d+|[IVX]+\.\d+)\s+([A-Z][A-Za-z\s\-]+)/';
+
+        preg_match_all($regex_subbab, $chapterText, $matches, PREG_OFFSET_CAPTURE);
+
+        for ($i = 0; $i < count($matches[0]); $i++) {
+            $startPos = $matches[0][$i][1];
+            $judul = trim($matches[2][$i][0]);
+            $endPos = isset($matches[0][$i + 1][1]) ? $matches[0][$i + 1][1] : null;
+
+            $isi = substr($chapterText, $startPos, $endPos ? $endPos - $startPos : null);
+            $isi = trim(preg_replace('/^' . preg_quote($matches[0][$i][0], '/') . '/', '', $isi, 1));
+
+            $subbabList[] = [
+                'judul' => $judul,
+                'isi' => trim($isi)
+            ];
+        }
+
+        return $subbabList;
     }
 }
