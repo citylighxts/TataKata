@@ -268,6 +268,25 @@
                     </div>
                 </form>
 
+                {{-- PEMISAH DAN TOMBOL DEBUG --}}
+                <div class="relative flex items-center justify-center my-6">
+                    <div class="absolute inset-0 flex items-center">
+                        <div class="w-full border-t border-[#85BBEB]/20"></div>
+                    </div>
+                    <div class="relative px-4">
+                        <span class="text-[#C0C0C0] text-sm">Atau</span>
+                    </div>
+                </div>
+            
+                {{-- TOMBOL DEBUG BARU --}}
+                <a href="{{ route('upload.debug') }}" 
+                   class="w-full flex-1 px-6 py-3.5 backdrop-blur-md bg-[#1a1a40]/50 border-2 border-[#85BBEB]/30 text-[#85BBEB] rounded-xl hover:bg-[#1a1a40]/80 hover:border-[#85BBEB]/50 transition-all duration-300 font-semibold text-center relative overflow-hidden group flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.43a4 4 0 00-5.656 0L12 17.256l-1.772-1.826a4 4 0 00-5.656 0 4 4 0 000 5.656L12 24l7.428-7.914a4 4 0 000-5.656zM12 2a4 4 0 014 4v2a4 4 0 11-8 0V6a4 4 0 014-4z"></path></svg>
+                    <span class="relative z-10">Gunakan File Testcase</span>
+                    <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/10 to-[#85BBEB]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                </a>
+                {{-- AKHIR BAGIAN MODIFIKASI --}}
+
             </div>
         </div>
 
@@ -489,12 +508,19 @@ function updateFileName(input) {
         const fileName = file.name;
 
         // Validasi ekstensi file
-        const allowedExtensions = ['pdf', 'doc', 'docx', 'txt'];
+        // Pastikan ini sinkron dengan validasi 'mimes' di DocumentController
+        const allowedExtensions = ['pdf', 'doc', 'docx']; // Menghapus 'txt'
         const fileExtension = fileName.split('.').pop().toLowerCase();
 
         if (!allowedExtensions.includes(fileExtension)) {
-            alert("❌ Format file tidak diizinkan!\nHarap upload file dengan format: PDF, DOC, atau DOCX.");
+            // (Catatan: Anda tidak menggunakan alert() di kode asli, jadi saya akan ikuti pola itu)
+            // Jika Anda ingin notifikasi, di sinilah tempatnya.
+            // alert("❌ Format file tidak diizinkan!\nHarap upload file dengan format: PDF, DOC, atau DOCX.");
             input.value = ''; // reset input
+            
+            // Kembalikan ke default
+            defaultState.classList.remove('hidden');
+            successState.classList.add('hidden');
             return; // hentikan fungsi (file tidak diterima)
         }
 

@@ -25,6 +25,11 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
     Route::get('/upload', [DocumentController::class, 'uploadForm'])->name('upload');
     Route::post('/upload', [DocumentController::class, 'upload'])->name('upload.post');
+
+    // Rute debug untuk mensimulasikan upload dari file testcase
+    Route::get('/debug-upload-testcase', [DocumentController::class, 'debugUploadTestcase'])
+            ->name('upload.debug');
+
     Route::get('/download/{id}', [DocumentController::class, 'download'])->name('document.download');
     Route::get('/history', [HistoryController::class, 'index'])->name('history');
     Route::delete('/history/delete', [HistoryController::class, 'delete'])->name('history.delete');

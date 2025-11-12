@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Smalot\PdfParser\Parser;
 use Illuminate\Support\Str;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
@@ -247,4 +249,71 @@ class DocumentController extends Controller
             abort(500, 'Terjadi kesalahan saat mengakses file.');
         }
     }
+
+    // <<< MODIFIKASI DIMULAI >>>
+    // ==========================================================
+    // METHOD BARU UNTUK DEBUGGING
+    // ==========================================================
+    public function debugUploadTestcase(Request $request)
+    {
+        try {
+            // 1. Definisikan file testcase Anda
+            // (Menggunakan nama file yang Anda sebutkan di prompt sebelumnya)
+            $testcaseFileName = '5025211016-Undergraduate_Thesis_compressed.pdf';
+            $sourcePath = public_path('files/' . $testcaseFileName);
+
+            if (!File::exists($sourcePath)) {
+                \Log::error('Debug Upload: File testcase tidak ditemukan', ['path' => $sourcePath]);
+                return back()->with('error', 'File testcase tidak ditemukan di ' . $sourcePath);
+            }
+
+            // 2. Tentukan tujuan (logika yang sama seperti di fungsi upload)
+            $document_name = "Debug Testcase - " . $testcaseFileName;
+            // Gunakan Str::slug untuk membersihkan nama file
+            $newFilenameBase = time() . '_' . Str::slug(pathinfo($document_name, PATHINFO_FILENAME), '_');
+            $newFilename = $newFilenameBase . '.pdf';
+
+            $usedDisk = config('filesystems.default') ?: 'public';
+            $destinationPath = 'documents/' . $newFilename; // Path relatif untuk disk
+
+            // 3. Salin file dari /public ke /storage
+            $fileContents = File::get($sourcePath);
+            Storage::disk($usedDisk)->put($destinationPath, $fileContents);
+            
+            $storagePath = Storage::disk($usedDisk)->path($destinationPath);
+            \Log::info('Debug Upload: File testcase disalin', [
+                'source' => $sourcePath,
+                'destination' => $storagePath,
+                'disk' => $usedDisk,
+            ]);
+
+            // 4. Buat record di DB (logika yang sama seperti fungsi upload)
+            $document = Document::create([
+                'user_id' => Auth::id(),
+                'file_name' => $document_name,
+                'file_location' => $destinationPath, // Simpan path relatif disk
+                'disk' => $usedDisk,
+                'upload_status' => 'Processing', 
+            ]);
+
+            History::create([
+                'user_id' => Auth::id(),
+                'document_id' => $document->id,
+                'activity_type' => 'upload_debug',
+                'details' => 'Dokumen testcase di-trigger oleh user',
+            ]);
+
+            // 5. Dispatch Job (logika yang sama seperti fungsi upload)
+            ProcessDocumentCorrection::dispatch($document);
+
+            // 6. Redirect ke halaman status
+            return redirect()->route('correction.status', $document->id) 
+                             ->with('success', 'Dokumen testcase berhasil di-trigger dan sedang diproses...');
+
+        } catch (\Throwable $e) {
+            \Log::error('Debug Upload failed', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return back()->with('error', 'Terjadi kesalahan saat memproses file testcase.');
+        }
+    }
+    // <<< MODIFIKASI BERAKHIR >>>
 }
