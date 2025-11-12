@@ -298,7 +298,15 @@ class ProcessDocumentCorrection implements ShouldQueue
                 ];
             }
 
-            return $tocEntries ?: null;
+            $tocEntries = collect($tocEntries)
+                ->unique(function ($e) {
+                    // Samakan huruf besar kecil + rapikan spasi
+                    return strtoupper(preg_replace('/\s+/', ' ', $e['judul']));
+                })
+                ->values()
+                ->all();
+
+            return $tocEntries;
 
         } catch (\Exception $e) {
             Log::error("extractTOC failed: " . $e->getMessage());
