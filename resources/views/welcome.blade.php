@@ -22,39 +22,58 @@
 
     {{-- Navbar --}}
     <header class="relative z-50 backdrop-blur-xl bg-[#0A0A2E]/70 border-b border-[#85BBEB]/20 shadow-lg shadow-[#85BBEB]/5">
-        <div class="w-full px-4 sm:px-6 lg:px-8 py-4 relative">
-            <div class="flex justify-between items-center w-full">
+        <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
+            <div class="flex justify-between items-center">
 
-            {{-- Logo --}}
-            <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer">
-                <div class="relative">
-                    <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                    <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
+                {{-- Logo --}}
+                <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer flex-shrink-0">
+                    <div class="relative">
+                        <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
+                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
+                    </div>
+                </a>
+
+                {{-- Tata Kata - Centered --}}
+                <div class="absolute left-1/2 transform -translate-x-1/2">
+                    <span class="text-lg sm:text-xl md:text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text whitespace-nowrap">
+                        Tata Kata
+                    </span>
                 </div>
-            </a>
 
-            {{-- Tata Kata --}}
-            <div class="absolute left-1/2 transform -translate-x-1/2">
-                <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">
-                    Tata Kata
-                </span>
+                {{-- Tombol Masuk & Daftar - Hidden on mobile, visible on md+ --}}
+                <div class="hidden md:flex gap-3 flex-shrink-0">
+                    <a href="{{ route('login') }}" class="px-4 lg:px-6 py-2 lg:py-2.5 border-2 border-[#85BBEB]/40 text-[#FEF9F0] rounded-full hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/60 hover:shadow-lg hover:shadow-[#85BBEB]/30 transition-all duration-300 font-medium backdrop-blur-sm relative overflow-hidden group text-sm lg:text-base">
+                        <span class="relative z-10">Masuk</span>
+                        <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/20 to-[#85BBEB]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+                    </a>
+                    <a href="{{ route('register') }}" class="px-4 lg:px-6 py-2 lg:py-2.5 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-medium relative overflow-hidden group text-sm lg:text-base">
+                        <span class="relative z-10 font-semibold">Daftar</span>
+                        <div class="absolute inset-0 bg-gradient-to-r from-[#FEF9F0]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    </a>
+                </div>
+
+                {{-- Mobile Menu Button - Visible only on mobile --}}
+                <button class="md:hidden w-10 h-10 flex items-center justify-center rounded-full bg-[#85BBEB]/10 border border-[#85BBEB]/30 hover:bg-[#85BBEB]/20 transition-all duration-300 flex-shrink-0" onclick="toggleMobileMenu()">
+                    <svg class="w-6 h-6 text-[#85BBEB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+
             </div>
-
-            {{-- Tombol Masuk & Daftar --}}
-            <div class="flex gap-3 ml-auto">
-                <a href="{{ route('login') }}" class="px-6 py-2.5 border-2 border-[#85BBEB]/40 text-[#FEF9F0] rounded-full hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/60 hover:shadow-lg hover:shadow-[#85BBEB]/30 transition-all duration-300 font-medium backdrop-blur-sm relative overflow-hidden group">
-                    <span class="relative z-10">Masuk</span>
-                    <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/20 to-[#85BBEB]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
-                </a>
-                <a href="{{ route('register') }}" class="px-6 py-2.5 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-medium relative overflow-hidden group">
-                    <span class="relative z-10 font-semibold">Daftar</span>
-                    <div class="absolute inset-0 bg-gradient-to-r from-[#FEF9F0]/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                </a>
-            </div>
-
         </div>
-    </div>
-</header>
+
+        {{-- Mobile Menu Dropdown --}}
+        <div id="mobileMenu" class="md:hidden hidden bg-[#0A0A2E]/95 backdrop-blur-xl border-t border-[#85BBEB]/20">
+            <div class="px-4 py-4 space-y-3">
+                <a href="{{ route('login') }}" class="block w-full px-6 py-3 border-2 border-[#85BBEB]/40 text-[#FEF9F0] rounded-full hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/60 transition-all duration-300 font-medium text-center">
+                    Masuk
+                </a>
+                <a href="{{ route('register') }}" class="block w-full px-6 py-3 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 transition-all duration-300 font-semibold text-center">
+                    Daftar
+                </a>
+            </div>
+        </div>
+    </header>
 
     {{-- Hero Section --}}
     <section class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
@@ -383,12 +402,8 @@
 <style>
 /* Gradient Animation */
 @keyframes gradient-shift {
-    0%, 100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
 }
 
 .animate-gradient-shift {
@@ -397,159 +412,76 @@
 }
 
 @keyframes gradient-text {
-    0%, 100% {
-        background-position: 0% center;
-    }
-    50% {
-        background-position: 100% center;
-    }
+    0%, 100% { background-position: 0% center; }
+    50% { background-position: 100% center; }
 }
 
 .animate-gradient-text {
     animation: gradient-text 3s linear infinite;
 }
 
-@keyframes gradient-rotate {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
-}
-
-.animate-gradient-rotate {
-    animation: gradient-rotate 10s linear infinite;
-}
-
 /* Float Animations */
 @keyframes float {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-    }
-    33% {
-        transform: translate(30px, -30px) scale(1.05);
-    }
-    66% {
-        transform: translate(-20px, 20px) scale(0.95);
-    }
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(30px, -30px) scale(1.05); }
+    66% { transform: translate(-20px, 20px) scale(0.95); }
 }
 
 @keyframes float-delayed {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-    }
-    33% {
-        transform: translate(-40px, 30px) scale(1.1);
-    }
-    66% {
-        transform: translate(30px, -20px) scale(0.9);
-    }
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    33% { transform: translate(-40px, 30px) scale(1.1); }
+    66% { transform: translate(30px, -20px) scale(0.9); }
 }
 
 @keyframes float-slow {
-    0%, 100% {
-        transform: translate(0, 0) scale(1);
-    }
-    50% {
-        transform: translate(20px, -40px) scale(1.05);
-    }
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(20px, -40px) scale(1.05); }
 }
 
-.animate-float {
-    animation: float 8s ease-in-out infinite;
-}
-
-.animate-float-delayed {
-    animation: float-delayed 10s ease-in-out infinite;
-}
-
-.animate-float-slow {
-    animation: float-slow 12s ease-in-out infinite;
-}
+.animate-float { animation: float 8s ease-in-out infinite; }
+.animate-float-delayed { animation: float-delayed 10s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 12s ease-in-out infinite; }
 
 /* Pulse Animations */
 @keyframes pulse-slow {
-    0%, 100% {
-        opacity: 0.3;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.5;
-        transform: scale(1.05);
-    }
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.05); }
 }
 
 @keyframes pulse-slower {
-    0%, 100% {
-        opacity: 0.2;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.4;
-        transform: scale(1.1);
-    }
+    0%, 100% { opacity: 0.2; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.1); }
 }
 
 @keyframes pulse-subtle {
-    0%, 100% {
-        opacity: 0.5;
-    }
-    50% {
-        opacity: 0.8;
-    }
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 0.8; }
 }
 
-.animate-pulse-slow {
-    animation: pulse-slow 4s ease-in-out infinite;
-}
-
-.animate-pulse-slower {
-    animation: pulse-slower 6s ease-in-out infinite;
-}
-
-.animate-pulse-subtle {
-    animation: pulse-subtle 2s ease-in-out infinite;
-}
+.animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }
+.animate-pulse-slower { animation: pulse-slower 6s ease-in-out infinite; }
+.animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
 
 /* Spin Animation */
 @keyframes spin-slow {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
-.animate-spin-slow {
-    animation: spin-slow 20s linear infinite;
-}
+.animate-spin-slow { animation: spin-slow 20s linear infinite; }
 
 /* Line Expand Animation */
 @keyframes line-expand {
-    0% {
-        width: 0%;
-    }
-    100% {
-        width: 100%;
-    }
+    0% { width: 0%; }
+    100% { width: 100%; }
 }
 
-.animate-line-expand {
-    animation: line-expand 2s ease-out forwards;
-}
+.animate-line-expand { animation: line-expand 2s ease-out forwards; }
 
 /* Scroll Animation */
 @keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .fade-in-up {
@@ -569,6 +501,24 @@
 </style>
 
 <script>
+// Toggle mobile menu
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    menu.classList.toggle('hidden');
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('mobileMenu');
+    const button = event.target.closest('button[onclick="toggleMobileMenu()"]');
+    
+    if (!button && menu && !menu.classList.contains('hidden')) {
+        if (!menu.contains(event.target)) {
+            menu.classList.add('hidden');
+        }
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     // Scroll Animation Observer
     const observerOptions = {
@@ -608,9 +558,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
-
-
 </script>
-
 
 @endsection
