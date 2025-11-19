@@ -1,29 +1,35 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-[#0A0A2E] relative overflow-hidden flex items-center justify-center p-4 sm:p-6">
+<div class="min-h-screen transition-colors duration-500 relative overflow-hidden flex flex-col items-center p-4 sm:p-6" id="mainContainer">
     
     {{-- Animated Gradient Background --}}
-    <div class="absolute inset-0 bg-gradient-to-br from-[#0A0A2E] via-[#1a1a40] to-[#0A0A2E] animate-gradient-shift"></div>
+    <div class="fixed inset-0 bg-gradient-to-br transition-colors duration-500" id="gradientBg"></div>
     
     {{-- Grid Pattern Overlay --}}
-    <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#85BBEB 1px, transparent 1px), linear-gradient(90deg, #85BBEB 1px, transparent 1px); background-size: 50px 50px;"></div>
+    <div class="fixed inset-0 opacity-5 transition-opacity duration-500" id="gridPattern"></div>
     
+    {{-- Theme Toggle Button - Top Center --}}
+    <button onclick="toggleTheme()" class="relative z-50 w-10 h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center group overflow-hidden mt-4 mb-8" id="themeToggle">
+        <svg class="w-5 h-5 transition-all duration-300" id="themeIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+        </svg>
+    </button>
 
     {{-- Main Content Card --}}
     <div class="relative z-10 w-full max-w-2xl">
         <div class="absolute inset-0 bg-gradient-to-br from-[#85BBEB]/20 to-transparent rounded-3xl blur-2xl opacity-60"></div>
         <div class="absolute -inset-0.5 bg-gradient-to-r from-[#85BBEB] to-[#FEF9F0] rounded-3xl opacity-20 blur"></div>
         
-        <div class="relative bg-gradient-to-br from-[#FEF9F0]/10 via-[#0A0A2E]/50 to-[#0A0A2E]/80 backdrop-blur-xl p-6 sm:p-8 md:p-10 lg:p-12 rounded-3xl shadow-2xl border border-[#85BBEB]/30 text-center">
+        <div class="relative backdrop-blur-xl p-6 sm:p-8 md:p-10 lg:p-12 rounded-3xl shadow-2xl border text-center transition-colors duration-500 theme-card">
             
             {{-- Title --}}
-            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-[#FFFFFF] mb-3 sm:mb-4" id="main-title">
+            <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 transition-colors duration-500 theme-title" id="main-title">
                 Sedang Memproses Dokumen ⏳
             </h1>
             
             {{-- Document Info --}}
-            <p class="text-base sm:text-lg md:text-xl text-[#C0C0C0] mb-6 sm:mb-8" id="doc-info">
+            <p class="text-base sm:text-lg md:text-xl mb-6 sm:mb-8 transition-colors duration-500 theme-subtitle" id="doc-info">
                 Dokumen <strong class="text-[#85BBEB]">{{ $document->file_name }}</strong> sedang dianalisis.
             </p>
 
@@ -43,12 +49,12 @@
                 <p id="status-message" class="text-base sm:text-lg font-semibold text-[#85BBEB] mb-2">
                     Status: {{ $document->upload_status }}...
                 </p>
-                <p id="status-details" class="text-sm sm:text-base text-[#C0C0C0]">{{ $document->details ?? '' }}</p>
+                <p id="status-details" class="text-sm sm:text-base transition-colors duration-500 theme-subtitle">{{ $document->details ?? '' }}</p>
                 
                 {{-- Action Button --}}
                 <div class="w-full mt-6 flex gap-3 justify-center">
                     <a href="{{ route('correction.original', $document->id) }}" target="_blank" rel="noopener noreferrer"
-                       class="px-6 py-3 backdrop-blur-md bg-[#FEF9F0]/10 border-2 border-[#85BBEB]/40 text-[#FEF9F0] rounded-full hover:bg-[#FEF9F0]/20 hover:border-[#85BBEB]/60 hover:shadow-lg hover:shadow-[#85BBEB]/30 transition-all duration-300 font-medium relative overflow-hidden group">
+                       class="px-6 py-3 backdrop-blur-md border-2 rounded-full transition-all duration-300 font-medium relative overflow-hidden group theme-btn-view">
                         <span class="relative z-10">Lihat Dokumen Asli</span>
                         <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/20 to-[#85BBEB]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                     </a>
@@ -58,16 +64,16 @@
                 <div id="progress-panel" class="w-full mt-6 text-left">
                     <div class="relative">
                         <div class="absolute inset-0 bg-gradient-to-br from-[#85BBEB]/10 to-transparent rounded-xl blur"></div>
-                        <div class="relative bg-[#0A0A2E]/50 backdrop-blur-sm p-4 rounded-xl border border-[#85BBEB]/20">
+                        <div class="relative backdrop-blur-sm p-4 rounded-xl border transition-colors duration-500 theme-progress-panel">
                             <h4 class="text-sm font-semibold text-[#85BBEB] mb-3 flex items-center gap-2">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
                                 </svg>
                                 Progres
                             </h4>
-                            <ul id="progress-list" class="text-sm text-[#C0C0C0] space-y-2 max-h-40 overflow-auto pr-2 custom-scrollbar">
+                            <ul id="progress-list" class="text-sm space-y-2 max-h-40 overflow-auto pr-2 custom-scrollbar transition-colors duration-500 theme-progress-list">
                                 @foreach(array_slice($document->progress_log ?? [], -10) as $entry)
-                                    <li class="flex gap-2 items-start hover:text-[#FEF9F0] transition-colors duration-200">
+                                    <li class="flex gap-2 items-start hover:text-[#85BBEB] transition-colors duration-200">
                                         <span class="text-xs text-[#85BBEB]/70 font-mono">[{{ \Carbon\Carbon::parse($entry['ts'] ?? now())->format('H:i:s') }}]</span>
                                         <span>{{ $entry['message'] ?? '' }}</span>
                                     </li>
@@ -79,7 +85,7 @@
             </div>
             
             {{-- Error Message --}}
-            <div id="error-message" class="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 font-semibold hidden"></div>
+            <div id="error-message" class="mt-4 p-4 border rounded-xl font-semibold hidden transition-colors duration-500 theme-error-msg"></div>
         </div>
     </div>
 
@@ -89,13 +95,13 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            const checkUrl = "{{ route('correction.check-status', $document->id) }}"; // Ganti nama route
+            const checkUrl = "{{ route('correction.check-status', $document->id) }}";
             const statusMessage = document.getElementById('status-message');
             const statusDisplay = document.getElementById('status-display');
             const mainTitle = document.getElementById('main-title');
             const docInfo = document.getElementById('doc-info');
             
-            const intervalDuration = 5000; // Cek setiap 5 detik
+            const intervalDuration = 5000;
             let pollingIntervalId = null;
 
             function createRedirectButton(url) {
@@ -116,27 +122,22 @@
                 .then(response => response.json())
                 .then(data => {
                     statusMessage.innerText = `Status: ${data.status}...`;
-
-                    // ==========================================================
-                    // PERUBAHAN STEP 3: JAVASCRIPT HANDLER BARU
-                    // ==========================================================
                     
-                    if (data.done) { // Ini HANYA akan true jika status = 'Ready'
+                    if (data.done) {
                         if (pollingIntervalId !== null) {
                             clearInterval(pollingIntervalId); 
                             pollingIntervalId = null; 
                         }
                         
-                        mainTitle.innerText = "Pemrosesan Selesai! 🎉";
+                        mainTitle.innerText = "Pemrosesan Selesai!";
                         statusDisplay.innerHTML = createRedirectButton(data.redirect_url);
-                        statusMessage.innerText = "Dokumen siap. Klik tombol di atas untuk melihat perubahannya.";
+                        statusMessage.innerText = "Klik tombol di atas untuk melihat perubahannya.";
                     
                     } else if (data.status === 'No_Chapters') {
-                        // Status baru: Dokumen bukan TA
                         if (pollingIntervalId !== null) { clearInterval(pollingIntervalId); }
                         
                         docInfo.classList.add('hidden');
-                        mainTitle.innerText = "Format Dokumen Salah 📑";
+                        mainTitle.innerText = "Format Dokumen Salah 📄";
                         statusDisplay.innerHTML = `
                             <a href="{{ route('dashboard') }}"
                                class="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-bold text-lg relative overflow-hidden group">
@@ -153,12 +154,11 @@
                         
                         const errorEl = document.getElementById('error-message');
                         if (data.details) {
-                            errorEl.innerText = data.details; // "Dokumen ini tidak dapat dipecah..."
+                            errorEl.innerText = data.details;
                             errorEl.classList.remove('hidden');
                         }
 
                     } else if (data.status === 'Failed') {
-                        // Status Gagal (Error sistem)
                         if (pollingIntervalId !== null) { clearInterval(pollingIntervalId); }
                         
                         docInfo.classList.add('hidden');
@@ -183,7 +183,6 @@
                         }
                     }
                     else if (data.status === 'Deleted') {
-                        // Status Dihapus
                         if (pollingIntervalId !== null) { clearInterval(pollingIntervalId); }
                         mainTitle.innerText = "Dokumen Dihapus 🗑️";
                         statusDisplay.innerHTML = `
@@ -202,7 +201,6 @@
                         docInfo.classList.add('hidden');
                     }
                     
-                    // Update detail dan progres (jika masih memproses)
                     const detailsEl = document.getElementById('status-details');
                     if (data.details && detailsEl) {
                         detailsEl.innerText = data.details;
@@ -212,12 +210,11 @@
                         const list = document.getElementById('progress-list');
                         if (list) {
                             list.innerHTML = '';
-                            data.progress.slice().reverse().forEach(entry => { // Tampilkan dari terbaru
+                            data.progress.slice().reverse().forEach(entry => {
                                 const li = document.createElement('li');
-                                li.className = 'flex gap-2 items-start hover:text-[#FEF9F0] transition-colors duration-200';
+                                li.className = 'flex gap-2 items-start hover:text-[#85BBEB] transition-colors duration-200';
                                 const ts = document.createElement('span');
                                 ts.className = 'text-xs text-[#85BBEB]/70 font-mono';
-                                // Format timestamp H:i:s
                                 let date = new Date(entry.ts);
                                 let timeString = [date.getHours(), date.getMinutes(), date.getSeconds()]
                                     .map(v => v < 10 ? '0' + v : v)
@@ -238,18 +235,140 @@
                 });
             }
             
-            // Periksa status segera saat halaman dimuat
             checkProcessingStatus(); 
-            // Mulai polling
             pollingIntervalId = setInterval(checkProcessingStatus, intervalDuration);
-
         });
-
-    
     </script>
 
     <style>
-    /* Gradient Animation */
+    /* Dark Mode (Default) */
+    #mainContainer {
+        background-image: linear-gradient(to bottom right, #0A0A2E, #1a1a40, #0A0A2E);
+    }
+
+    #gradientBg {
+        background-image: linear-gradient(to bottom right, #0A0A2E, #1a1a40, #0A0A2E);
+    }
+
+    #gridPattern {
+        background-image: linear-gradient(#85BBEB 1px, transparent 1px), linear-gradient(90deg, #85BBEB 1px, transparent 1px);
+        background-size: 50px 50px;
+    }
+
+    .theme-card {
+        background: linear-gradient(to bottom right, rgba(254, 249, 240, 0.1), rgba(10, 10, 46, 0.5), rgba(10, 10, 46, 0.8));
+        border-color: rgba(133, 187, 235, 0.3);
+    }
+
+    .theme-title {
+        color: #FFFFFF;
+    }
+
+    .theme-subtitle {
+        color: #C0C0C0;
+    }
+
+    .theme-btn-view {
+        background-color: rgba(254, 249, 240, 0.1);
+        border-color: rgba(133, 187, 235, 0.4);
+        color: #FEF9F0;
+    }
+
+    .theme-btn-view:hover {
+        background-color: rgba(254, 249, 240, 0.2);
+        border-color: rgba(133, 187, 235, 0.6);
+        box-shadow: 0 10px 15px -3px rgba(133, 187, 235, 0.3);
+    }
+
+    .theme-progress-panel {
+        background-color: rgba(10, 10, 46, 0.5);
+        border-color: rgba(133, 187, 235, 0.2);
+    }
+
+    .theme-progress-list {
+        color: #C0C0C0;
+    }
+
+    .theme-error-msg {
+        background-color: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.3);
+        color: #FCA5A5;
+    }
+
+    #themeToggle {
+        border-color: rgba(133, 187, 235, 0.4);
+        color: #85BBEB;
+        background-color: rgba(133, 187, 235, 0.1);
+    }
+
+    #themeToggle:hover {
+        background-color: rgba(133, 187, 235, 0.2);
+        border-color: rgba(133, 187, 235, 0.6);
+    }
+
+    /* Light Mode */
+    body.light-mode #gradientBg {
+        background-image: linear-gradient(to bottom right, #FAFBFC, #F0F4F8, #E8EEF5);
+    }
+
+    body.light-mode #gridPattern {
+        background-image: linear-gradient(#4A5568  1px, transparent 1px), linear-gradient(90deg, #4A5568 1px, transparent 1px);
+        opacity: 0.05;
+    }
+
+    body.light-mode .theme-card {
+        background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.95), rgba(250, 251, 252, 0.9), rgba(245, 247, 250, 0.95));
+        border-color: rgba(133, 187, 235, 0.2);
+        box-shadow: 0 4px 12px rgba(133, 187, 235, 0.1), 0 2px 4px rgba(0, 0, 0, 0.03);
+    }
+
+    body.light-mode .theme-title {
+        color: #1A202C;
+    }
+
+    body.light-mode .theme-subtitle {
+        color: #4A5568;
+    }
+
+    body.light-mode .theme-btn-view {
+        background-color: rgba(255, 255, 255, 0.7);
+        border-color: rgba(133, 187, 235, 0.3);
+        color: #2D3748;
+    }
+
+    body.light-mode .theme-btn-view:hover {
+        background-color: rgba(255, 255, 255, 0.95);
+        border-color: rgba(133, 187, 235, 0.5);
+        box-shadow: 0 10px 15px -3px rgba(133, 187, 235, 0.2);
+    }
+
+    body.light-mode .theme-progress-panel {
+        background-color: rgba(250, 251, 252, 0.6);
+        border-color: rgba(133, 187, 235, 0.2);
+    }
+
+    body.light-mode .theme-progress-list {
+        color: #4A5568;
+    }
+
+    body.light-mode .theme-error-msg {
+        background-color: rgba(239, 68, 68, 0.1);
+        border-color: rgba(239, 68, 68, 0.25);
+        color: #DC2626;
+    }
+
+    body.light-mode #themeToggle {
+        border-color: rgba(245, 158, 11, 0.3);
+        color: #F59E0B;
+        background-color: rgba(255, 237, 213, 0.4);
+    }
+
+    body.light-mode #themeToggle:hover {
+        background-color: rgba(255, 237, 213, 0.6);
+        border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    /* Animations */
     @keyframes gradient-shift {
         0%, 100% { background-position: 0% 50%; }
         50% { background-position: 100% 50%; }
@@ -260,37 +379,16 @@
         animation: gradient-shift 15s ease infinite;
     }
 
-    /* Float Animations */
-    @keyframes float {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        33% { transform: translate(30px, -30px) scale(1.05); }
-        66% { transform: translate(-20px, 20px) scale(0.95); }
-    }
-
-    @keyframes float-delayed {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        33% { transform: translate(-40px, 30px) scale(1.1); }
-        66% { transform: translate(30px, -20px) scale(0.9); }
-    }
-
-    @keyframes float-slow {
-        0%, 100% { transform: translate(0, 0) scale(1); }
-        50% { transform: translate(20px, -40px) scale(1.05); }
-    }
-
-    .animate-float { animation: float 8s ease-in-out infinite; }
-    .animate-float-delayed { animation: float-delayed 10s ease-in-out infinite; }
-    .animate-float-slow { animation: float-slow 12s ease-in-out infinite; }
-
-    /* Pulse Animation */
     @keyframes pulse-subtle {
         0%, 100% { opacity: 0.5; }
         50% { opacity: 0.8; }
     }
 
-    .animate-pulse-subtle { animation: pulse-subtle 2s ease-in-out infinite; }
+    .animate-pulse-subtle { 
+        animation: pulse-subtle 2s ease-in-out infinite; 
+    }
 
-    /* Custom Scrollbar */
+    /* Custom Scrollbar - Dark Mode */
     .custom-scrollbar::-webkit-scrollbar {
         width: 6px;
     }
@@ -309,6 +407,55 @@
         background: rgba(133, 187, 235, 0.6);
     }
 
+    /* Custom Scrollbar - Light Mode */
+    body.light-mode .custom-scrollbar::-webkit-scrollbar-track {
+        background: rgba(133, 187, 235, 0.08);
+    }
+
+    body.light-mode .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: rgba(133, 187, 235, 0.3);
+    }
+
+    body.light-mode .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: rgba(133, 187, 235, 0.5);
+    }
     </style>
+
+    <script>
+    // Theme Toggle Function
+    function toggleTheme() {
+        const body = document.body;
+        const themeIcon = document.getElementById('themeIcon');
+        
+        body.classList.toggle('light-mode');
+        
+        const isLightMode = body.classList.contains('light-mode');
+        
+        const moonPath = 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z';
+        const sunPath = 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z';
+        
+        if (isLightMode) {
+            themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${sunPath}"/>`;
+            localStorage.setItem('theme', 'light');
+        } else {
+            themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${moonPath}"/>`;
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+
+    // Load saved theme on page load
+    function loadTheme() {
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+            const themeIcon = document.getElementById('themeIcon');
+            const sunPath = 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z';
+            themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${sunPath}"/>`;
+        }
+    }
+
+    // Load theme immediately
+    loadTheme();
+    </script>
 </div>
 @endsection

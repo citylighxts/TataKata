@@ -515,8 +515,8 @@ body.light-mode #gradientBg {
 }
 
 body.light-mode #gridPattern {
-    background-image: linear-gradient(#4A5568  1px, transparent 1px), linear-gradient(90deg, #4A5568 1px, transparent 1px);
-    opacity: 0.02;
+    background-image: linear-gradient(#4A5568 1px, transparent 1px), linear-gradient(90deg, #4A5568 1px, transparent 1px);
+    opacity: 0.05;
 }
 
 body.light-mode #navbar {
