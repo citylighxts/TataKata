@@ -172,7 +172,7 @@ class ProcessDocumentCorrection implements ShouldQueue
     {
         $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
         $text = preg_replace('/[^\pL\pN\pP\pS\pZ\s]/u', '', $text);
-        $text = preg_replace('/(\w)-\n(\w)/', '$1$2', $text); 
+        $text = preg_replace('/(\w)-\n(\w)/', '$1$2', $text);
         $text = preg_replace('/\n{3,}/', "\n\n", $text); 
         return trim($text);
     }
@@ -244,8 +244,20 @@ class ProcessDocumentCorrection implements ShouldQueue
                     }
 
                     if ($startPos !== null) {
+                        if (!$endPos) {
+                            $regex_end_last = '/\b(DAFTAR\s+PUSTAKA|REFERENSI|PUSTAKA|LAMPIRAN|GLOSARIUM|BIODATA\s+PENULIS|(?:[\(\[\*]?\s*)?HALAMAN\s+INI\s+SENGAJA\s+DIKOSONGKAN(?:\s*[\)\]\*])?|HALAMAN\s+KOSONG)\b/i';
+
+                            if (preg_match($regex_end_last, $fullText, $mEnd, PREG_OFFSET_CAPTURE, $startPos)) {
+                                $endPos = $mEnd[0][1]; // posisi pembatas
+                            }
+                        }
+
                         $chapterText = substr($fullText, $startPos, $endPos ? $endPos - $startPos : null);
                         $chapterText = trim(preg_replace($startPattern, '', $chapterText, 1));
+                        $chapterText = preg_replace('/\n{1,5}\d{1,4}\s*$/m', '', $chapterText); // hapus nomor halaman sisa
+                        $chapterText = preg_replace('/\(\s*\)$/m', '', $chapterText);           // hapus "(" satuan
+                        $chapterText = preg_replace('/^\s*\d{1,4}\s*$/m', '', $chapterText);    // angka berdiri sendiri
+                        $chapterText = preg_replace('/^\s*[\(\[]\s*$/m', '', $chapterText);     // "(" atau "[" sebaris
                         $chapters[] = [
                             'judul' => "BAB {$currentNumber} {$currentTitle}",
                             'isi' => trim($chapterText)
