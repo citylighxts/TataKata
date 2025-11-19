@@ -66,16 +66,16 @@
 
     <main class="relative">
         {{-- Breadcrumb --}}
-    <div class="absolute left-0 w-screen">
-        <a href="{{ route('dashboard') }}"
-            class="flex items-center gap-2 text-[#85BBEB] hover:text-[#FEF9F0] transition-colors duration-300 group fade-in-up px-4 pt-2">
-            <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform"
-                fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-            </svg>
-            <span class="font-medium">Kembali ke Beranda</span>
-        </a>
-    </div>
+        <div class="absolute left-0 w-screen">
+            <a href="{{ route('dashboard') }}"
+                class="flex items-center gap-2 text-[#85BBEB] hover:text-[#FEF9F0] transition-colors duration-300 group fade-in-up px-4 pt-2">
+                <svg class="w-5 h-5 group-hover:-translate-x-1 transition-transform"
+                    fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                </svg>
+                <span class="font-medium">Kembali ke Beranda</span>
+            </a>
+        </div>
 
         {{-- Main Content --}}
         <div class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -158,29 +158,114 @@
                                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
                                     {{-- Teks Asli --}}
                                     <div>
-                                        <h5 class="text-lg sm:text-xl font-bold text-[#FFFFFF] mb-3 sm:mb-4">Teks Asli</h5>
+                                        <h5 class="text-lg sm:text-xl font-bold text-[#FFFFFF] mb-3 sm:mb-4 flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-[#85BBEB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            Teks Asli
+                                        </h5>
                                         <div class="prose max-w-none text-[#C0C0C0] leading-relaxed text-sm sm:text-base bg-[#0A0A2E]/50 p-4 rounded-xl max-h-[400px] sm:max-h-[600px] overflow-y-auto custom-scrollbar">
                                             <p class="whitespace-pre-wrap break-words">{{ $chapter->original_text }}</p>
                                         </div>
                                     </div>
+                                    
                                     {{-- Teks Koreksi --}}
                                     <div>
-                                        <h5 class="text-lg sm:text-xl font-bold text-[#FFFFFF] mb-3 sm:mb-4">Rekomendasi Koreksi</h5>
-                                        <div class="prose max-w-none text-[#C0C0C0] leading-relaxed text-sm sm:text-base bg-[#0A0A2E]/50 p-4 rounded-xl min-h-[200px] max-h-[400px] sm:max-h-[600px] overflow-y-auto custom-scrollbar"
-                                             :class="{'flex items-center justify-center': status !== 'Completed'}">
+                                        <h5 class="text-lg sm:text-xl font-bold text-[#FFFFFF] mb-3 sm:mb-4 flex items-center gap-2">
+                                            <svg class="w-5 h-5 text-[#85BBEB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                            </svg>
+                                            Rekomendasi Koreksi
+                                        </h5>
+                                        <div class="bg-[#0A0A2E]/50 p-4 rounded-xl min-h-[200px] max-h-[400px] sm:max-h-[600px] overflow-y-auto custom-scrollbar">
                                             
                                             {{-- Tampilkan berdasarkan status --}}
                                             <template x-if="status === 'Pending' || status === 'Failed'">
-                                                <span class="text-[#85BBEB]/50 italic text-center">Klik "Koreksi Bab Ini" untuk memulai.</span>
-                                            </template>
-                                            <template x-if="status === 'Queued' || status === 'Processing'">
-                                                <div class="text-center">
-                                                    <div class="w-8 h-8 border-4 border-[#85BBEB] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                                                    <span class="text-[#85BBEB]/80 italic" x-text="details || 'Memproses...'"></span>
+                                                <div class="flex items-center justify-center h-full min-h-[200px]">
+                                                    <span class="text-[#85BBEB]/50 italic text-center text-sm">Klik "Koreksi Bab Ini" untuk memulai.</span>
                                                 </div>
                                             </template>
+                                            
+                                            <template x-if="status === 'Queued' || status === 'Processing'">
+                                                <div class="flex flex-col items-center justify-center h-full min-h-[200px]">
+                                                    <div class="w-8 h-8 border-4 border-[#85BBEB] border-t-transparent rounded-full animate-spin mb-4"></div>
+                                                    <span class="text-[#85BBEB]/80 italic text-sm text-center" x-text="details || 'Memproses...'"></span>
+                                                </div>
+                                            </template>
+                                            
                                             <template x-if="status === 'Completed'">
-                                                <p class="whitespace-pre-wrap break-words" x-text="correctedText"></p>
+                                                <div>
+                                                    {{-- Jika tidak ada koreksi --}}
+                                                    <template x-if="!correctionsList || correctionsList.length === 0">
+                                                        <div class="flex flex-col items-center justify-center py-8 text-center">
+                                                            <div class="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mb-4">
+                                                                <svg class="w-10 h-10 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                                </svg>
+                                                            </div>
+                                                            <p class="text-green-300 font-semibold text-base mb-2">Tidak Ada Kesalahan Ditemukan</p>
+                                                            <p class="text-green-400/70 text-sm">Teks sudah sesuai dengan kaidah Bahasa Indonesia.</p>
+                                                        </div>
+                                                    </template>
+
+                                                    {{-- Jika ada koreksi --}}
+                                                    <template x-if="correctionsList && correctionsList.length > 0">
+                                                        <div class="space-y-4">
+                                                            {{-- Info Header --}}
+                                                            <div class="bg-[#85BBEB]/10 border border-[#85BBEB]/30 rounded-lg p-3 mb-4">
+                                                                <p class="text-[#85BBEB] font-semibold text-sm flex items-center gap-2">
+                                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                                                    </svg>
+                                                                    <span x-text="'Total: ' + correctionsList.length + ' koreksi ditemukan'"></span>
+                                                                </p>
+                                                            </div>
+
+                                                            {{-- List Koreksi --}}
+                                                            <template x-for="(item, index) in correctionsList" :key="index">
+                                                                <div class="border-l-4 border-yellow-400 bg-gradient-to-r from-yellow-400/10 to-transparent rounded-r-lg p-4 hover:from-yellow-400/15 transition-colors">
+                                                                    {{-- Header Item --}}
+                                                                    <div class="flex items-start justify-between mb-3">
+                                                                        <span class="text-yellow-300 font-bold text-base" x-text="'#' + (index + 1)"></span>
+                                                                    </div>
+                                                                    
+                                                                    {{-- Teks Asli --}}
+                                                                    <div class="mb-3">
+                                                                        <div class="flex items-center gap-2 mb-1.5">
+                                                                            <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                                                            </svg>
+                                                                            <p class="text-red-400/90 text-xs font-semibold uppercase tracking-wide">Teks Asli:</p>
+                                                                        </div>
+                                                                        <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                                                                            <p class="text-[#FEF9F0] text-sm leading-relaxed" x-text="item.original"></p>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    {{-- Arrow Divider --}}
+                                                                    <div class="flex justify-center my-2">
+                                                                        <svg class="w-6 h-6 text-[#85BBEB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                                                                        </svg>
+                                                                    </div>
+                                                                    
+                                                                    {{-- Perbaikan --}}
+                                                                    <div>
+                                                                        <div class="flex items-center gap-2 mb-1.5">
+                                                                            <svg class="w-4 h-4 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                                                            </svg>
+                                                                            <p class="text-green-400/90 text-xs font-semibold uppercase tracking-wide">Perbaikan:</p>
+                                                                        </div>
+                                                                        <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                                                                            <p class="text-green-300 text-sm leading-relaxed" x-text="item.corrected"></p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            </template>
+                                                        </div>
+                                                    </template>
+                                                </div>
                                             </template>
                                         </div>
                                     </div>
@@ -341,6 +426,7 @@ function chapterItem(id, initialStatus, initialDetails, hasCorrected, correctUrl
         status: initialStatus,
         details: initialDetails,
         correctedText: '',
+        correctionsList: [],
         pollInterval: null,
 
         init() {
@@ -408,6 +494,7 @@ function chapterItem(id, initialStatus, initialDetails, hasCorrected, correctUrl
                     if (data.status === 'Completed') {
                         clearInterval(this.pollInterval);
                         this.correctedText = data.corrected_text;
+                        this.parseCorrections(data.corrected_text);
                     }
                     if (data.status === 'Failed') {
                         clearInterval(this.pollInterval);
@@ -428,8 +515,43 @@ function chapterItem(id, initialStatus, initialDetails, hasCorrected, correctUrl
             .then(data => {
                 if (data.status === 'Completed') {
                     this.correctedText = data.corrected_text;
+                    this.parseCorrections(data.corrected_text);
                 }
             });
+        },
+
+        parseCorrections(text) {
+            // Reset array
+            this.correctionsList = [];
+            
+            if (!text || text.trim() === '') return;
+            
+            // Check jika tidak ada koreksi
+            if (text.includes('tidak ada yang perlu dikoreksi') || 
+                text.includes('Tidak ada koreksi')) {
+                return;
+            }
+
+            // Pattern untuk menangkap format:
+            // - "teks asli"
+            //   -> "teks perbaikan"
+            const pattern = /-\s*"([^"]+)"\s*(?:->|→)\s*"([^"]+)"/g;
+            let match;
+
+            while ((match = pattern.exec(text)) !== null) {
+                const original = match[1].trim();
+                const corrected = match[2].trim();
+                
+                // Skip jika keduanya sama
+                if (original !== corrected) {
+                    this.correctionsList.push({
+                        original: original,
+                        corrected: corrected
+                    });
+                }
+            }
+
+            console.log('Parsed corrections:', this.correctionsList);
         }
     };
 }
