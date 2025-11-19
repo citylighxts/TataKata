@@ -47,27 +47,37 @@ class ProcessDocumentCorrection implements ShouldQueue
 
         $this->pushProgress($document, 'Memulai pemrosesan dokumen...', 'Processing');
 
-        $tempFile = null;
-        try {
-            $tempFile = tempnam(sys_get_temp_dir(), 'doc_');
-            $signedUrl = URL::temporarySignedRoute('correction.original', now()->addMinutes(10), ['document' => $document->id]);
-            $response = HttpFacade::withOptions(['timeout' => 60, 'sink' => $tempFile])->get($signedUrl);
+        // ============================================================
+        // PERBAIKAN UTAMA: DIRECT DISK ACCESS (Bukan Download HTTP)
+        // ============================================================
+        $file_path = null;
 
-            if (!$response->successful()) {
-                 throw new \Exception('Gagal mengunduh file via signed URL. Status: ' . $response->status());
+        try {
+            // 1. Tentukan Disk yang digunakan (default 'public' jika null)
+            $diskName = $document->disk ?: 'public';
+            
+            // 2. Dapatkan lokasi file relatif
+            $relativePath = $document->file_location;
+
+            // 3. Cek apakah file ada di disk
+            if (!Storage::disk($diskName)->exists($relativePath)) {
+                throw new \Exception("File fisik tidak ditemukan di storage (Disk: $diskName, Path: $relativePath)");
             }
-            $file_path = $tempFile; 
-            Log::info("File downloaded to temp path: {$file_path}", ['document_id' => $document->id]);
+
+            // 4. Dapatkan ABSOLUTE PATH sistem (contoh: /home/user/TataKata/storage/app/public/documents/file.pdf)
+            // Ini yang dibutuhkan oleh PDF Parser
+            $file_path = Storage::disk($diskName)->path($relativePath);
+
+            Log::info("Worker accessing file directly at: {$file_path}", ['document_id' => $document->id]);
 
         } catch (\Throwable $e) {
-            Log::warning('File download via signed URL failed: ' . $e->getMessage(), ['document_id' => $document->id]);
-            if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
-            $document->update(['upload_status' => 'Failed', 'details' => 'File tidak ditemukan oleh worker.']);
+            Log::error('File access failed: ' . $e->getMessage(), ['document_id' => $document->id]);
+            $document->update(['upload_status' => 'Failed', 'details' => 'File tidak ditemukan di disk server.']);
             return;
         }
 
         try {
-            // Cek PDF Header
+            // Cek PDF Header (Langsung baca dari file asli, tidak perlu temp file)
             try {
                 $h = @fopen($file_path, 'rb');
                 $first = @fread($h, 5);
@@ -82,6 +92,7 @@ class ProcessDocumentCorrection implements ShouldQueue
             $parser = new Parser();
             $this->pushProgress($document, 'Membaca dan mempartisi dokumen (per halaman)...');
             
+            // Parse langsung dari file asli
             $pdf = $parser->parseFile($file_path);
             $pages = $pdf->getPages();
             Log::info("Total pages found: " . count($pages), ['document_id' => $this->documentId]);
@@ -95,8 +106,6 @@ class ProcessDocumentCorrection implements ShouldQueue
                      'upload_status' => 'No_Chapters', 
                      'details' => 'Dokumen ini tidak dapat dipecah. Pastikan file yang diunggah adalah Tugas Akhir (TA).'
                  ]);
-                 
-                 if (!empty($tempFile) && file_exists($tempFile)) @unlink($tempFile);
                  return;
             }
 
@@ -131,17 +140,10 @@ class ProcessDocumentCorrection implements ShouldQueue
                 $document->save();
             });
 
-            if (!empty($tempFile) && file_exists($tempFile)) {
-                @unlink($tempFile);
-            }
-
             Log::info("Document ID {$this->documentId} split successfully (page-by-page).");
 
         } catch (\Exception $e) {
             Log::error("Document Splitting Failed for ID {$this->documentId}: " . $e->getMessage());
-            if (!empty($tempFile) && file_exists($tempFile)) {
-                @unlink($tempFile);
-            }
             $document->update(['upload_status' => 'Failed', 'details' => 'Pemecahan gagal: ' . substr($e->getMessage(), 0, 250)]);
         }
     }
