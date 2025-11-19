@@ -1,25 +1,17 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-[#0A0A2E] relative overflow-hidden">
+<div class="min-h-screen transition-colors duration-500" id="mainContainer">
     
     {{-- Animated Gradient Background --}}
-    <div class="absolute inset-0 bg-gradient-to-br from-[#0A0A2E] via-[#1a1a40] to-[#0A0A2E] animate-gradient-shift"></div>
+    <div class="fixed inset-0 bg-gradient-to-br transition-colors duration-500" id="gradientBg"></div>
     
     {{-- Grid Pattern Overlay --}}
-    <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#85BBEB 1px, transparent 1px), linear-gradient(90deg, #85BBEB 1px, transparent 1px); background-size: 50px 50px;"></div>
+    <div class="fixed inset-0 opacity-5 transition-opacity duration-500" id="gridPattern"></div>
     
-    {{-- Animated Background Elements --}}
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="blob-interactive absolute top-0 -left-4 w-96 h-96 bg-[#85bbeb28] rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-float"></div>
-        <div class="blob-interactive absolute top-0 -right-4 w-96 h-96 bg-[#FEF9F0] rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-float-delayed"></div>
-        <div class="blob-interactive absolute -bottom-8 left-20 w-96 h-96 bg-[#85bbeb2f] rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-float-slow"></div>
-        <div class="absolute top-1/3 right-1/4 w-64 h-64 bg-[#C0C0C0] rounded-full mix-blend-screen filter blur-2xl opacity-10 animate-pulse-slow"></div>
-        <div class="absolute bottom-1/4 left-1/3 w-72 h-72 bg-[#85BBEB] rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-pulse-slower"></div>
-    </div>
 
     {{-- Navbar --}}
-    <header class="relative z-50 backdrop-blur-xl bg-[#0A0A2E]/70 border-b border-[#85BBEB]/20 shadow-lg shadow-[#85BBEB]/5">
+    <header class="relative z-50 backdrop-blur-xl border-b shadow-lg transition-colors duration-500" id="navbar">
         <div class="w-full px-4 sm:px-6 lg:px-8 py-4">
             <div class="flex justify-between items-center">
                 {{-- Logo --}}
@@ -30,18 +22,48 @@
                     </div>
                 </a>
 
-                {{-- Tata Kata --}}
+                {{-- Tata Kata - Centered --}}
                 <div class="absolute left-1/2 transform -translate-x-1/2">
-                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">Tata Kata</span>
+                    <span class="text-2xl font-bold gradient-text-navbar animate-gradient-text bg-[length:200%_auto] whitespace-nowrap">Tata Kata</span>
                 </div>
 
-                {{-- Button Masuk --}}
-                <div class="flex gap-3">
-                    <a href="{{ route('login') }}" class="px-6 py-2.5 border-2 border-[#85BBEB]/40 text-[#FEF9F0] rounded-full hover:bg-[#85BBEB]/20 hover:border-[#85BBEB]/60 hover:shadow-lg hover:shadow-[#85BBEB]/30 transition-all duration-300 font-medium backdrop-blur-sm relative overflow-hidden group">
+                {{-- Desktop Actions --}}
+                <div class="hidden md:flex gap-3 items-center">
+                    {{-- Theme Toggle Button --}}
+                    <button onclick="toggleTheme()" class="w-10 h-10 rounded-full border-2 transition-all duration-300 flex items-center justify-center group relative overflow-hidden" id="themeToggle">
+                        <svg class="w-5 h-5 transition-all duration-300" id="themeIcon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                        </svg>
+                    </button>
+
+                    <a href="{{ route('login') }}" class="px-6 py-2.5 border-2 rounded-full transition-all duration-300 font-medium backdrop-blur-sm relative overflow-hidden group theme-btn-secondary">
                         <span class="relative z-10">Masuk</span>
                         <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/20 to-[#85BBEB]/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
                     </a>
                 </div>
+
+                {{-- Mobile Menu Button --}}
+                <button class="md:hidden w-10 h-10 flex items-center justify-center rounded-full transition-all duration-300 theme-btn-mobile" onclick="toggleMobileMenu()">
+                    <svg class="w-6 h-6 text-[#85BBEB]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        {{-- Mobile Menu Dropdown --}}
+        <div id="mobileMenu" class="md:hidden hidden backdrop-blur-xl border-t transition-colors duration-500 theme-mobile-menu">
+            <div class="px-4 py-4 space-y-3">
+                {{-- Theme Toggle for Mobile --}}
+                <button onclick="toggleTheme()" class="w-full px-6 py-3 border-2 rounded-full transition-all duration-300 font-medium text-center flex items-center justify-center gap-2 theme-btn-secondary">
+                    <svg class="w-5 h-5" id="themeIconMobile" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                    <span id="themeTextMobile">Mode Terang</span>
+                </button>
+                <a href="{{ route('login') }}" class="block w-full px-6 py-3 border-2 rounded-full transition-all duration-300 font-medium text-center theme-btn-secondary">
+                    Masuk
+                </a>
             </div>
         </div>
     </header>
@@ -56,21 +78,21 @@
                     <div class="space-y-4">
                         <div class="inline-block relative">
                             <div class="absolute inset-0 bg-[#85BBEB]/20 blur-xl rounded-full"></div>
-                            <span class="relative px-5 py-2.5 bg-gradient-to-r from-[#85BBEB]/30 via-[#85BBEB]/20 to-transparent backdrop-blur-md border border-[#85BBEB]/40 rounded-full text-[#85BBEB] text-sm font-medium shadow-lg shadow-[#85BBEB]/10 flex items-center gap-2 w-fit">
+                            <span class="relative px-5 py-2.5 bg-gradient-to-r from-[#85BBEB]/30 via-[#85BBEB]/20 to-transparent backdrop-blur-md border border-[#85BBEB]/40 rounded-full text-[#0088ff] text-sm font-medium shadow-lg shadow-[#85BBEB]/10 flex items-center gap-2 w-fit">
                                 <span class="animate-pulse">✨</span>
                                 <span>Mulai Gratis Sekarang</span>
                             </span>
                         </div>
                         
-                        <h1 class="text-4xl lg:text-5xl font-black text-[#FFFFFF] leading-tight">
+                        <h1 class="text-4xl lg:text-5xl font-black leading-tight transition-colors duration-500 theme-title">
                             <span class="inline-block">Bergabung</span><br>
                             <span class="relative inline-block">
                                 <span class="absolute inset-0 bg-gradient-to-r from-[#85BBEB] to-[#FEF9F0] blur-2xl opacity-20"></span>
-                                <span class="relative bg-gradient-to-r from-[#85BBEB] via-[#FEF9F0] to-[#85BBEB] bg-clip-text text-transparent animate-gradient-text bg-[length:200%_auto]">dengan Tata Kata</span>
+                                <span class="relative gradient-text-hero animate-gradient-text bg-[length:200%_auto]">dengan Tata Kata</span>
                             </span>
                         </h1>
                         
-                        <p class="text-lg text-[#C0C0C0] leading-relaxed relative pl-4">
+                        <p class="text-lg leading-relaxed relative pl-4 transition-colors duration-500 theme-subtitle">
                             <span class="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-[#85BBEB] to-transparent rounded-full"></span>
                             Sempurnakan tugas akhir Anda dengan teknologi AI terdepan. Mulai perjalanan menulis yang lebih baik hari ini.
                         </p>
@@ -85,8 +107,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-[#FFFFFF] font-semibold mb-1">Gratis Selamanya</h3>
-                                <p class="text-[#C0C0C0] text-sm">Akses penuh tanpa biaya tersembunyi</p>
+                                <h3 class="font-semibold mb-1 transition-colors duration-500 theme-title">Gratis Selamanya</h3>
+                                <p class="text-sm transition-colors duration-500 theme-subtitle">Akses penuh tanpa biaya tersembunyi</p>
                             </div>
                         </div>
                         
@@ -97,8 +119,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-[#FFFFFF] font-semibold mb-1">Analisis AI Akurat</h3>
-                                <p class="text-[#C0C0C0] text-sm">Deteksi kesalahan dengan presisi tinggi</p>
+                                <h3 class="font-semibold mb-1 transition-colors duration-500 theme-title">Analisis AI Akurat</h3>
+                                <p class="text-sm transition-colors duration-500 theme-subtitle">Deteksi kesalahan dengan presisi tinggi</p>
                             </div>
                         </div>
                         
@@ -109,8 +131,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="text-[#FFFFFF] font-semibold mb-1">Privasi Terjamin</h3>
-                                <p class="text-[#C0C0C0] text-sm">Data Anda aman dan terenkripsi</p>
+                                <h3 class="font-semibold mb-1 transition-colors duration-500 theme-title">Privasi Terjamin</h3>
+                                <p class="text-sm transition-colors duration-500 theme-subtitle">Data Anda aman dan terenkripsi</p>
                             </div>
                         </div>
                     </div>
@@ -126,10 +148,10 @@
                 <div class="relative fade-in-up" style="animation-delay: 0.2s;">
                     {{-- Mobile Logo --}}
                     <div class="lg:hidden text-center mb-6">
-                        <h1 class="text-3xl font-bold bg-gradient-to-r from-[#85BBEB] via-[#FEF9F0] to-[#85BBEB] bg-clip-text text-transparent animate-gradient-text bg-[length:200%_auto]">
+                        <h1 class="text-3xl font-bold gradient-text-hero animate-gradient-text bg-[length:200%_auto]">
                             Tata Kata
                         </h1>
-                        <p class="text-[#C0C0C0] mt-2">Buat akun baru</p>
+                        <p class="mt-2 transition-colors duration-500 theme-subtitle">Buat akun baru</p>
                     </div>
 
                     {{-- Form Card --}}
@@ -137,10 +159,10 @@
                         <div class="absolute inset-0 bg-gradient-to-r from-[#85BBEB]/30 via-[#FEF9F0]/20 to-[#85BBEB]/30 rounded-3xl blur-2xl opacity-60 group-hover:opacity-80 transition-opacity duration-500"></div>
                         <div class="absolute -inset-1 bg-gradient-to-r from-[#85BBEB] via-[#FEF9F0] to-[#85BBEB] rounded-3xl opacity-20 blur"></div>
                         
-                        <div class="relative bg-gradient-to-br from-[#FEF9F0]/10 via-[#0A0A2E]/50 to-[#85BBEB]/10 backdrop-blur-xl rounded-3xl p-8 sm:p-10 border border-[#85BBEB]/30 shadow-2xl">
+                        <div class="relative backdrop-blur-xl rounded-3xl p-8 sm:p-10 border shadow-2xl transition-all duration-500 theme-card-inner">
                             <div class="text-center mb-8">
-                                <h2 class="text-2xl sm:text-3xl font-bold text-[#FFFFFF] mb-2">Buat Akun</h2>
-                                <p class="text-[#C0C0C0]">Mulai sempurnakan tulisan Anda</p>
+                                <h2 class="text-2xl sm:text-3xl font-bold mb-2 transition-colors duration-500 theme-title">Buat Akun</h2>
+                                <p class="transition-colors duration-500 theme-subtitle">Mulai sempurnakan tulisan Anda</p>
                             </div>
 
                             {{-- Error Messages --}}
@@ -166,24 +188,24 @@
                                 <div class="grid sm:grid-cols-2 gap-4">
                                     {{-- First Name --}}
                                     <div class="space-y-2">
-                                        <label for="first_name" class="block text-sm font-semibold text-[#FEF9F0]">
+                                        <label for="first_name" class="block text-sm font-semibold transition-colors duration-500 theme-label">
                                             Nama Depan
                                         </label>
                                         <div class="relative group">
                                             <input id="first_name" type="text" name="first_name" value="{{ old('first_name') }}" required autofocus
-                                                class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm">
+                                                class="w-full px-4 py-3 rounded-xl border outline-none transition-all duration-300 backdrop-blur-sm theme-input">
                                             <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                         </div>
                                     </div>
 
                                     {{-- Last Name --}}
                                     <div class="space-y-2">
-                                        <label for="last_name" class="block text-sm font-semibold text-[#FEF9F0]">
+                                        <label for="last_name" class="block text-sm font-semibold transition-colors duration-500 theme-label">
                                             Nama Belakang
                                         </label>
                                         <div class="relative group">
                                             <input id="last_name" type="text" name="last_name" value="{{ old('last_name') }}" required
-                                                class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm">
+                                                class="w-full px-4 py-3 rounded-xl border outline-none transition-all duration-300 backdrop-blur-sm theme-input">
                                             <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                         </div>
                                     </div>
@@ -191,26 +213,26 @@
 
                                 {{-- Email --}}
                                 <div class="space-y-2">
-                                    <label for="email" class="block text-sm font-semibold text-[#FEF9F0]">
+                                    <label for="email" class="block text-sm font-semibold transition-colors duration-500 theme-label">
                                         Alamat Email
                                     </label>
                                     <div class="relative group">
                                         <input id="email" type="email" name="email" value="{{ old('email') }}" required
-                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm">
+                                            class="w-full px-4 py-3 rounded-xl border outline-none transition-all duration-300 backdrop-blur-sm theme-input">
                                         <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                     </div>
                                 </div>
 
                                 {{-- Password --}}
                                 <div class="space-y-2">
-                                    <label for="password" class="block text-sm font-semibold text-[#FEF9F0]">
+                                    <label for="password" class="block text-sm font-semibold transition-colors duration-500 theme-label">
                                         Kata Sandi
-                                        </label>
+                                    </label>
                                     <div class="relative group">
-                                        <input id="password" type="password" name="password" required
-                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm pr-12">
+                                        <input id="password" type="password" name="password" required autocomplete="new-password"
+                                            class="w-full px-4 py-3 rounded-xl border outline-none transition-all duration-300 backdrop-blur-sm pr-12 theme-input password-input">
                                         <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                        <button type="button" id="togglePassword" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#85BBEB] hover:text-[#FEF9F0] focus:outline-none">
+                                        <button type="button" id="togglePassword" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#85BBEB] focus:outline-none transition-colors duration-300 theme-eye-icon z-10">
                                             <svg id="eyeIcon" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -223,14 +245,14 @@
 
                                 {{-- Confirm Password --}}
                                 <div class="space-y-2">
-                                    <label for="password_confirmation" class="block text-sm font-semibold text-[#FEF9F0]">
+                                    <label for="password_confirmation" class="block text-sm font-semibold transition-colors duration-500 theme-label">
                                         Konfirmasi Kata Sandi
                                     </label>
                                     <div class="relative group">
-                                        <input id="password_confirmation" type="password" name="password_confirmation" required
-                                            class="w-full px-4 py-3 rounded-xl bg-[#0A0A2E]/50 border border-[#85BBEB]/30 text-[#FEF9F0] placeholder-[#C0C0C0] focus:border-[#85BBEB] focus:ring-2 focus:ring-[#85BBEB]/50 outline-none transition-all duration-300 backdrop-blur-sm pr-12">
-                                            <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-                                        <button type="button" id="toggleConfirmPassword" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#85BBEB] hover:text-[#FEF9F0] focus:outline-none">
+                                        <input id="password_confirmation" type="password" name="password_confirmation" required autocomplete="new-password"
+                                            class="w-full px-4 py-3 rounded-xl border outline-none transition-all duration-300 backdrop-blur-sm pr-12 theme-input password-input">
+                                        <div class="absolute inset-0 rounded-xl bg-gradient-to-r from-[#85BBEB]/0 via-[#85BBEB]/5 to-[#85BBEB]/0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
+                                        <button type="button" id="toggleConfirmPassword" class="absolute right-4 top-1/2 transform -translate-y-1/2 text-[#85BBEB] focus:outline-none transition-colors duration-300 theme-eye-icon z-10">
                                             <svg id="eyeIconConfirm" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                                     d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -258,7 +280,7 @@
 
                             {{-- Login Link --}}
                             <div class="text-center mt-6">
-                                <p class="text-[#C0C0C0]">
+                                <p class="transition-colors duration-500 theme-subtitle">
                                     Sudah punya akun?
                                     <a href="{{ route('login') }}" class="text-[#85BBEB] hover:text-[#FEF9F0] font-semibold transition-colors duration-300 hover:underline">
                                         Masuk di sini
@@ -274,14 +296,249 @@
 </div>
 
 <style>
-/* Gradient Animation */
+/* Remove browser default password reveal icon */
+.password-input::-ms-reveal,
+.password-input::-ms-clear {
+    display: none;
+}
+
+.password-input::-webkit-contacts-auto-fill-button,
+.password-input::-webkit-credentials-auto-fill-button {
+    visibility: hidden;
+    display: none !important;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+    margin: 0;
+}
+
+/* Dark Mode (Default) */
+#mainContainer {
+    background-image: linear-gradient(to bottom right, #0A0A2E, #1a1a40, #0A0A2E);
+}
+
+#gradientBg {
+    background-image: linear-gradient(to bottom right, #0A0A2E, #1a1a40, #0A0A2E);
+}
+
+#gridPattern {
+    background-image: linear-gradient(#85BBEB 1px, transparent 1px), linear-gradient(90deg, #85BBEB 1px, transparent 1px);
+    background-size: 50px 50px;
+}
+
+#navbar {
+    background-color: rgba(10, 10, 46, 0.7);
+    border-color: rgba(133, 187, 235, 0.2);
+    box-shadow: 0 10px 15px -3px rgba(133, 187, 235, 0.05);
+}
+
+.theme-btn-secondary {
+    border-color: rgba(133, 187, 235, 0.4);
+    color: #FEF9F0;
+    background-color: rgba(254, 249, 240, 0);
+}
+
+.theme-btn-secondary:hover {
+    background-color: rgba(133, 187, 235, 0.2);
+    border-color: rgba(133, 187, 235, 0.6);
+}
+
+.theme-btn-mobile {
+    background-color: rgba(133, 187, 235, 0.1);
+    border: 1px solid rgba(133, 187, 235, 0.3);
+}
+
+.theme-btn-mobile:hover {
+    background-color: rgba(133, 187, 235, 0.2);
+}
+
+.theme-mobile-menu {
+    background-color: rgba(10, 10, 46, 0.95);
+}
+
+.theme-title {
+    color: #FFFFFF;
+}
+
+.theme-subtitle {
+    color: #C0C0C0;
+}
+
+.theme-label {
+    color: #FEF9F0;
+}
+
+.theme-card-inner {
+    background: linear-gradient(to bottom right, rgba(254, 249, 240, 0.1), rgba(10, 10, 46, 0.5), rgba(133, 187, 235, 0.1));
+    border-color: rgba(133, 187, 235, 0.3);
+}
+
+.theme-input {
+    background-color: rgba(10, 10, 46, 0.5);
+    border-color: rgba(133, 187, 235, 0.3);
+    color: #FEF9F0;
+}
+
+.theme-input::placeholder {
+    color: #C0C0C0;
+}
+
+.theme-input:focus {
+    border-color: #85BBEB;
+    ring: 2px;
+    ring-color: rgba(133, 187, 235, 0.5);
+}
+
+.theme-eye-icon {
+    color: #85BBEB;
+}
+
+.theme-eye-icon:hover {
+    color: #FEF9F0;
+}
+
+
+
+#themeToggle {
+    border-color: rgba(133, 187, 235, 0.4);
+    color: #85BBEB;
+    background-color: rgba(133, 187, 235, 0.1);
+}
+
+#themeToggle:hover {
+    background-color: rgba(133, 187, 235, 0.2);
+    border-color: rgba(133, 187, 235, 0.6);
+}
+
+/* Dynamic gradient text colors - DARK MODE */
+.gradient-text-navbar {
+    background: linear-gradient(to right, #FFFFFF, #85BBEB, #FFFFFF);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-hero {
+    background: linear-gradient(to right, #85BBEB, #FFFFFF, #85BBEB);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Light Mode */
+body.light-mode #gradientBg {
+    background-image: linear-gradient(to bottom right, #FAFBFC, #F0F4F8, #E8EEF5);
+}
+
+body.light-mode #gridPattern {
+    background-image: linear-gradient(#4A5568 1px, transparent 1px), linear-gradient(90deg, #4A5568 1px, transparent 1px);
+    opacity: 0.02;
+}
+
+body.light-mode #navbar {
+    background-color: rgba(255, 255, 255, 0.85);
+    border-color: rgba(133, 187, 235, 0.15);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+body.light-mode .theme-btn-secondary {
+    border-color: rgba(133, 187, 235, 0.3);
+    color: #2D3748;
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+body.light-mode .theme-btn-secondary:hover {
+    background-color: rgba(133, 187, 235, 0.8);
+    border-color: rgba(133, 187, 235, 0.5);
+    color: #FFFFFF;
+}
+
+body.light-mode .theme-btn-mobile {
+    background-color: rgba(133, 187, 235, 0.08);
+    border-color: rgba(133, 187, 235, 0.2);
+}
+
+body.light-mode .theme-btn-mobile:hover {
+    background-color: rgba(133, 187, 235, 0.15);
+}
+
+body.light-mode .theme-mobile-menu {
+    background-color: rgba(255, 255, 255, 0.95);
+}
+
+body.light-mode .theme-title {
+    color: #1A202C;
+}
+
+body.light-mode .theme-subtitle {
+    color: #4A5568;
+}
+
+body.light-mode .theme-label {
+    color: #2D3748;
+}
+
+body.light-mode .theme-card-inner {
+    background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.98), rgba(250, 251, 252, 0.95), rgba(245, 247, 250, 0.98));
+    border-color: rgba(133, 187, 235, 0.25);
+    box-shadow: 0 4px 12px rgba(133, 187, 235, 0.1), 0 2px 4px rgba(0, 0, 0, 0.03);
+}
+
+body.light-mode .theme-input {
+    background-color: rgba(255, 255, 255, 0.9);
+    border-color: rgba(133, 187, 235, 0.25);
+    color: #1A202C;
+}
+
+body.light-mode .theme-input::placeholder {
+    color: #718096;
+}
+
+body.light-mode .theme-input:focus {
+    border-color: #85BBEB;
+    background-color: #FFFFFF;
+}
+
+body.light-mode .theme-eye-icon {
+    color: #85BBEB;
+}
+
+body.light-mode .theme-eye-icon:hover {
+    color: #2C5282;
+}
+
+
+
+body.light-mode #themeToggle {
+    border-color: rgba(245, 158, 11, 0.3);
+    color: #F59E0B;
+    background-color: rgba(255, 237, 213, 0.4);
+}
+
+body.light-mode #themeToggle:hover {
+    background-color: rgba(255, 237, 213, 0.6);
+    border-color: rgba(245, 158, 11, 0.4);
+}
+
+/* Light mode gradient text overrides */
+body.light-mode .gradient-text-navbar {
+    background: linear-gradient(to right, #000000, #85BBEB, #000000);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.light-mode .gradient-text-hero {
+    background: linear-gradient(to right, #85BBEB, #000000, #85BBEB);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Animations */
 @keyframes gradient-shift {
-    0%, 100% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
 }
 
 .animate-gradient-shift {
@@ -290,12 +547,8 @@
 }
 
 @keyframes gradient-text {
-    0%, 100% {
-        background-position: 0% center;
-    }
-    50% {
-        background-position: 100% center;
-    }
+    0%, 100% { background-position: 0% center; }
+    50% { background-position: 100% center; }
 }
 
 .animate-gradient-text {
@@ -427,15 +680,75 @@
     animation: fadeInUp 0.8s ease-out forwards;
 }
 
-/* Interactive Blob */
-.blob-interactive {
-    will-change: transform;
-    transition: transform 0.15s ease-out;
-}
+
 </style>
 
 <script>
+// Theme Toggle Function
+function toggleTheme() {
+    const body = document.body;
+    const themeIcon = document.getElementById('themeIcon');
+    const themeIconMobile = document.getElementById('themeIconMobile');
+    const themeTextMobile = document.getElementById('themeTextMobile');
+    
+    body.classList.toggle('light-mode');
+    
+    const isLightMode = body.classList.contains('light-mode');
+    
+    // Update icons
+    const moonPath = 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z';
+    const sunPath = 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z';
+    
+    if (isLightMode) {
+        themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${sunPath}"/>`;
+        themeIconMobile.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${sunPath}"/>`;
+        themeTextMobile.textContent = 'Mode Gelap';
+        localStorage.setItem('theme', 'light');
+    } else {
+        themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${moonPath}"/>`;
+        themeIconMobile.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${moonPath}"/>`;
+        themeTextMobile.textContent = 'Mode Terang';
+        localStorage.setItem('theme', 'dark');
+    }
+}
+
+// Load saved theme on page load
+function loadTheme() {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-mode');
+        const themeIcon = document.getElementById('themeIcon');
+        const themeIconMobile = document.getElementById('themeIconMobile');
+        const themeTextMobile = document.getElementById('themeTextMobile');
+        const sunPath = 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z';
+        themeIcon.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${sunPath}"/>`;
+        themeIconMobile.innerHTML = `<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${sunPath}"/>`;
+        themeTextMobile.textContent = 'Mode Gelap';
+    }
+}
+
+// Toggle mobile menu
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    menu.classList.toggle('hidden');
+}
+
+// Close mobile menu when clicking outside
+document.addEventListener('click', function(event) {
+    const menu = document.getElementById('mobileMenu');
+    const button = event.target.closest('button[onclick="toggleMobileMenu()"]');
+    
+    if (!button && menu && !menu.classList.contains('hidden')) {
+        if (!menu.contains(event.target)) {
+            menu.classList.add('hidden');
+        }
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Load theme
+    loadTheme();
+    
     // Scroll Animation Observer
     const observerOptions = {
         threshold: 0.1,
@@ -454,78 +767,55 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(el);
     });
 
-    // Interactive Background with Mouse
-    const blobs = document.querySelectorAll('.blob-interactive');
-    
-    if (blobs.length > 0) {
-        document.addEventListener('mousemove', function(e) {
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            
-            blobs.forEach((blob, index) => {
-                const speed = (index + 1) * 20;
-                const moveX = ((mouseX / windowWidth) - 0.5) * speed;
-                const moveY = ((mouseY / windowHeight) - 0.5) * speed;
-                
-                blob.style.transform = `translate(${moveX}px, ${moveY}px)`;
-            });
-        });
-    }
-});
 
-    document.addEventListener('DOMContentLoaded', function () {
+    // Password Toggle Functions
     function setEyeIcon(iconEl, isShown) {
-        // isShown === true  -> password sedang "ditampilkan" (text)
-        // isShown === false -> password "disembunyikan" (password)
         if (!iconEl) return;
         if (isShown) {
-        iconEl.innerHTML = `
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
-            <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" />`;
+            iconEl.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
+                <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" />`;
         } else {
-        iconEl.innerHTML = `
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M1.5 12s4.5-7.5 10.5-7.5S22.5 12 22.5 12s-4.5 7.5-10.5 7.5S1.5 12 1.5 12z" />
-            <circle cx="12" cy="12" r="3" stroke-linecap="round" stroke-linejoin="round" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18" />`;
+            iconEl.innerHTML = `
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />`;
         }
     }
 
-    // password utama
+    // Password field
     const passwordField = document.getElementById('password');
     const togglePassword = document.getElementById('togglePassword');
     const eyeIcon = document.getElementById('eyeIcon');
 
-    // confirm password
+    // Confirm password field
     const confirmField = document.getElementById('password_confirmation');
     const toggleConfirm = document.getElementById('toggleConfirmPassword');
     const eyeIconConfirm = document.getElementById('eyeIconConfirm');
 
-    // Set ikon awal sesuai state input
+    // Set initial icons
     if (eyeIcon && passwordField) setEyeIcon(eyeIcon, passwordField.type === 'text');
     if (eyeIconConfirm && confirmField) setEyeIcon(eyeIconConfirm, confirmField.type === 'text');
 
-    // Toggle utama
+    // Toggle password
     if (togglePassword && passwordField && eyeIcon) {
         togglePassword.addEventListener('click', function () {
-        const willShow = passwordField.type === 'password'; // kalau sekarang password -> akan show
-        passwordField.type = willShow ? 'text' : 'password';
-        setEyeIcon(eyeIcon, willShow);
+            const willShow = passwordField.type === 'password';
+            passwordField.type = willShow ? 'text' : 'password';
+            setEyeIcon(eyeIcon, willShow);
         });
     }
 
-    // Toggle confirm
+    // Toggle confirm password
     if (toggleConfirm && confirmField && eyeIconConfirm) {
         toggleConfirm.addEventListener('click', function () {
-        const willShow = confirmField.type === 'password';
-        confirmField.type = willShow ? 'text' : 'password';
-        setEyeIcon(eyeIconConfirm, willShow);
+            const willShow = confirmField.type === 'password';
+            confirmField.type = willShow ? 'text' : 'password';
+            setEyeIcon(eyeIconConfirm, willShow);
         });
     }
-    });
-
+});
 </script>
 @endsection

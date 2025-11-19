@@ -9,12 +9,6 @@
     {{-- Grid Pattern Overlay --}}
     <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#85BBEB 1px, transparent 1px), linear-gradient(90deg, #85BBEB 1px, transparent 1px); background-size: 50px 50px;"></div>
     
-    {{-- Animated Background Elements --}}
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="blob-interactive absolute top-0 -left-4 w-96 h-96 bg-[#85bbeb28] rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-float"></div>
-        <div class="blob-interactive absolute top-0 -right-4 w-96 h-96 bg-[#FEF9F0] rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-float-delayed"></div>
-        <div class="blob-interactive absolute -bottom-8 left-20 w-96 h-96 bg-[#85bbeb2f] rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-float-slow"></div>
-    </div>
 
     {{-- Main Content Card --}}
     <div class="relative z-10 w-full max-w-2xl">
@@ -251,25 +245,7 @@
 
         });
 
-        // Interactive Background with Mouse
-        const blobs = document.querySelectorAll('.blob-interactive');
-        
-        if (blobs.length > 0) {
-            document.addEventListener('mousemove', function(e) {
-                const mouseX = e.clientX;
-                const mouseY = e.clientY;
-                const windowWidth = window.innerWidth;
-                const windowHeight = window.innerHeight;
-                
-                blobs.forEach((blob, index) => {
-                    const speed = (index + 1) * 20;
-                    const moveX = ((mouseX / windowWidth) - 0.5) * speed;
-                    const moveY = ((mouseY / windowHeight) - 0.5) * speed;
-                    
-                    blob.style.transform = `translate(${moveX}px, ${moveY}px)`;
-                });
-            });
-        }
+    
     </script>
 
     <style>
@@ -333,11 +309,6 @@
         background: rgba(133, 187, 235, 0.6);
     }
 
-    /* Interactive Blob */
-    .blob-interactive {
-        will-change: transform;
-        transition: transform 0.15s ease-out;
-    }
     </style>
 </div>
 @endsection

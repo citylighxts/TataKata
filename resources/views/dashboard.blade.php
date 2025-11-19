@@ -9,14 +9,7 @@
     {{-- Grid Pattern Overlay --}}
     <div class="absolute inset-0 opacity-5" style="background-image: linear-gradient(#85BBEB 1px, transparent 1px), linear-gradient(90deg, #85BBEB 1px, transparent 1px); background-size: 50px 50px;"></div>
     
-    {{-- Animated Background Elements --}}
-    <div class="absolute inset-0 overflow-hidden pointer-events-none">
-        <div class="blob-interactive absolute top-0 -left-4 w-96 h-96 bg-[#85bbeb28] rounded-full mix-blend-screen filter blur-3xl opacity-20 animate-float"></div>
-        <div class="blob-interactive absolute top-0 -right-4 w-96 h-96 bg-[#FEF9F0] rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-float-delayed"></div>
-        <div class="blob-interactive absolute -bottom-8 left-20 w-96 h-96 bg-[#85bbeb2f] rounded-full mix-blend-screen filter blur-3xl opacity-10 animate-float-slow"></div>
-        <div class="absolute top-1/3 right-1/4 w-64 h-64 bg-[#C0C0C0] rounded-full mix-blend-screen filter blur-2xl opacity-10 animate-pulse-slow"></div>
-        <div class="absolute bottom-1/4 left-1/3 w-72 h-72 bg-[#85BBEB] rounded-full mix-blend-screen filter blur-3xl opacity-15 animate-pulse-slower"></div>
-    </div>
+    
 
     {{-- Navbar --}}
     <header class="relative z-50 backdrop-blur-xl bg-[#0A0A2E]/70 border-b border-[#85BBEB]/20 shadow-lg shadow-[#85BBEB]/5">
@@ -375,11 +368,6 @@
     animation: fadeInUp 0.8s ease-out forwards;
 }
 
-/* Interactive Blob */
-.blob-interactive {
-    will-change: transform;
-    transition: transform 0.15s ease-out;
-}
 </style>
 
 <script>
@@ -402,25 +390,6 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(el);
     });
 
-    // Interactive Background with Mouse
-    const blobs = document.querySelectorAll('.blob-interactive');
-    
-    if (blobs.length > 0) {
-        document.addEventListener('mousemove', function(e) {
-            const mouseX = e.clientX;
-            const mouseY = e.clientY;
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            
-            blobs.forEach((blob, index) => {
-                const speed = (index + 1) * 20;
-                const moveX = ((mouseX / windowWidth) - 0.5) * speed;
-                const moveY = ((mouseY / windowHeight) - 0.5) * speed;
-                
-                blob.style.transform = `translate(${moveX}px, ${moveY}px)`;
-            });
-        });
-    }
 });
 </script>
 
