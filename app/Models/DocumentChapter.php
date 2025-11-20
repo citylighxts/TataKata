@@ -19,9 +19,6 @@ class DocumentChapter extends Model
         'details',
     ];
 
-    /**
-     * Get the parent document.
-     */
     public function document()
     {
         return $this->belongsTo(Document::class);

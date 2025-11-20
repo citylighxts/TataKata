@@ -17,47 +17,35 @@ class CorrectChapterJob implements ShouldQueue
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     protected $chapter;
-    public $timeout = 600; // 10 menit timeout per bab
+    public $timeout = 600; 
 
-    /**
-     * Create a new job instance.
-     */
     public function __construct(DocumentChapter $chapter)
     {
         $this->chapter = $chapter->withoutRelations();
     }
 
-    /**
-     * Execute the job.
-     */
     public function handle(): void
     {
         $chapter = $this->chapter;
         Log::info("CorrectChapterJob started for Chapter ID: {$chapter->id}");
 
         try {
-            // Tandai sebagai Processing
             $chapter->update([
                 'status' => 'Processing',
                 'details' => 'Mengirim teks ke AI...'
             ]);
 
-            // Panggil fungsi koreksi Ollama
             $corrected_text = $this->correctTextWithOllama($chapter->original_text, $chapter->id);
 
-            // Cek hasil
             if (str_starts_with($corrected_text, 'ERROR:')) {
                 throw new \Exception($corrected_text);
             }
-            
-            // Perbaikan kecil: Cek jika balasannya masih rangkuman (sebagai fallback)
+
             if (str_starts_with($corrected_text, 'Analisis Laporan') || str_starts_with($corrected_text, 'Berdasarkan pendahuluan')) {
                  Log::warning("Model masih merangkum (Chapter {$chapter->id}). Mengembalikan teks asli.");
-                 // Kita anggap gagal agar user bisa coba lagi
                  throw new \Exception('Model AI gagal mengoreksi dan malah merangkum. Coba ganti model (misal: llama3).');
             }
 
-            // Sukses
             $chapter->update([
                 'status' => 'Completed',
                 'corrected_text' => $corrected_text,
@@ -75,21 +63,17 @@ class CorrectChapterJob implements ShouldQueue
         }
     }
 
-    /**
-     * Mengoreksi teks menggunakan Ollama (LOKAL)
-     */
     private function correctTextWithOllama($text, $chapterId)
     {
         $jobStart = microtime(true);
         try {
-            // Cache check
             $cacheKey = 'doc_correction_ollama_' . sha1($text); 
             if (Cache::has($cacheKey)) {
                 Log::info("Cache hit for chapter {$chapterId} (key={$cacheKey}).");
                 return Cache::get($cacheKey);
             }
             
-            $modelName = env('OLLAMA_MODEL', 'llama3:latest'); // Pastikan .env sudah diubah
+            $modelName = env('OLLAMA_MODEL', 'llama3:latest'); 
             $url = env('OLLAMA_URL', 'http://127.0.0.1:11434/api/generate');
             $timeoutDuration = 540; 
 
@@ -99,12 +83,10 @@ class CorrectChapterJob implements ShouldQueue
                 'text_length' => $textLen,
             ]);
 
-            // normalisasi ringan sebelum membuat prompt (letakkan sebelum prompt)
             $text = trim(mb_convert_encoding($text, 'UTF-8', 'UTF-8'));
             $text = preg_replace('/[^\S\n]+/u', ' ', $text);
             $text = preg_replace('/\n{3,}/', "\n\n", $text);
 
-            // prompt: rekomendasi kalimat (pilih-pilih, tanpa "no correction" per baris)
             $promptString =
                 "INSTRUKSI: Gunakan Bahasa Indonesia baku dan gaya formal (akademik). Tugas Anda bukan merangkum, melainkan memberikan REKOMENDASI PERBAIKAN KALIMAT untuk bagian yang dapat ditingkatkan.\n\n" .
                 "ATURAN PENTING:\n" .
@@ -121,7 +103,6 @@ class CorrectChapterJob implements ShouldQueue
                 $text . "\n\n" .
                 "--- SELESAI ---";
 
-            // Format Payload OLLAMA
             $payload = [
                 'model' => $modelName,
                 'prompt' => $promptString,
@@ -152,13 +133,10 @@ class CorrectChapterJob implements ShouldQueue
                 return "ERROR: API Ollama tidak memberikan hasil koreksi.";
             }
 
-            // Ambil hasil mentah dari Ollama
             $raw = trim($json['response']);
 
-            // Bersihkan output agar tidak ada "No correction needed" atau duplikat
             $clean = $this->normalizeCorrections($raw);
 
-            // Simpan hasil ke cache
             Cache::put($cacheKey, $clean, now()->addDays(7));
 
             $totalTook = round(microtime(true) - $jobStart, 3);

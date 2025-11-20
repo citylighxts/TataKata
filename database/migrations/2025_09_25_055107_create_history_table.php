@@ -11,14 +11,12 @@ return new class extends Migration
         Schema::create('history', function (Blueprint $table) {
             $table->id();
             
-            // FK ke tabel users
             $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
 
-            // Opsional: FK ke dokumen terkait
             $table->foreignId('document_id')->nullable()->constrained('documents')->onDelete('set null');
 
-            $table->string('activity_type'); // Contoh: 'Upload', 'Login', 'Cancel'
-            $table->text('details'); // Deskripsi lengkap peristiwa
+            $table->string('activity_type'); 
+            $table->text('details'); 
             
             $table->timestamps();
         });

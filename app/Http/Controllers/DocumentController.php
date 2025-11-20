@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Storage;
 
 class DocumentController extends Controller
 {
-    // ... (Fungsi uploadForm dan upload tetap SAMA) ...
     public function uploadForm()
     {
         return view('upload');
@@ -43,9 +42,6 @@ class DocumentController extends Controller
                 'db_driver' => config('database.default'),
                 'user_id' => Auth::id(),
             ]);
-
-            // Hapus dokumen lama dengan nama yang sama (jika ada)
-            // Document::where('user_id', Auth::id())->where('file_name', $document_name)->delete();
 
             $document = Document::create([
                 'user_id' => Auth::id(),
@@ -88,7 +84,7 @@ class DocumentController extends Controller
             if (! $document) {
                 return response()->json([
                     'status' => 'Deleted',
-                    'done' => false, // Polling harus berhenti, tapi ini bukan 'done' (sukses)
+                    'done' => false, 
                     'details' => 'Dokumen telah dihapus oleh pengguna.',
                     'progress' => [],
                     'redirect_url' => null
@@ -102,26 +98,18 @@ class DocumentController extends Controller
             $document->refresh();
             $status = trim($document->upload_status ?? '');
             
-            // ==========================================================
-            // PERUBAHAN STEP 2: LOGIKA 'DONE' YANG BARU
-            // ==========================================================
-            
-            // 'done' HANYA berarti "polling selesai DAN berhasil (siap redirect)"
             $isDoneAndReady = ($status === 'Ready');
 
             \Log::info("🟢 Document ID {$id} status: '{$status}'. DoneAndReady: {$isDoneAndReady}");
-            
-            // Frontend JS akan memeriksa 'status' string untuk 'Failed', 'Deleted', atau 'No_Chapters'
-            // dan akan memeriksa 'done: true' HANYA untuk redirect
+        
             
             return response()->json([
                 'status' => $document->upload_status,
-                'done' => $isDoneAndReady, // 'done' HANYA true jika status 'Ready'
+                'done' => $isDoneAndReady, 
                 'details' => $document->details,
                 'progress' => array_slice($document->progress_log ?? [], -20),
                 'redirect_url' => $isDoneAndReady ? route('correction.show', $document->id) : null
             ]);
-            // ==========================================================
 
         } catch (\Throwable $e) {
             \Log::error("❌ checkStatus ERROR: " . $e->getMessage(), [
@@ -131,7 +119,6 @@ class DocumentController extends Controller
         }
     }
 
-    // ... (Fungsi showStatus tetap SAMA) ...
     public function showStatus($id)
     {
         $document = Document::findOrFail($id); 
@@ -143,10 +130,8 @@ class DocumentController extends Controller
         return view('correction_status', compact('document'));
     }
 
-    // == FUNGSI showCorrection DIUBAH ==
     public function showCorrection($id)
     {
-        // Muat dokumen BERSAMA relasi chapters
         $document = Document::with('chapters')->findOrFail($id);
         $document->refresh();
 
@@ -156,21 +141,16 @@ class DocumentController extends Controller
 
         $statusLower = strtolower(trim($document->upload_status ?? ''));
         
-        // Hanya izinkan akses jika statusnya 'Ready' (siap dikoreksi per-bab)
         if ($statusLower !== 'ready') {
             \Log::warning("⚠️ Clash Detected: User tried accessing correction page for ID {$id} but status is '{$document->upload_status}'");
-            // Kirim kembali ke halaman status jika belum 'Ready'
             return view('correction_status', compact('document'));
         }
 
-        // Kirim $document (yang berisi $document->chapters) ke view
         return view('correction', compact('document'));
     }
 
-    // == FUNGSI download DIUBAH ==
     public function download($id)
     {
-        // Muat dokumen BERSAMA relasi chapters
         $document = Document::with('chapters')->findOrFail($id);
         if ($document->user_id !== Auth::id()) {
             abort(403, 'Anda tidak memiliki akses ke koreksi ini.');
@@ -187,8 +167,6 @@ class DocumentController extends Controller
         foreach ($document->chapters as $chapter) {
             $full_original_text .= $chapter->chapter_title . $separator . $chapter->original_text . $separator;
             
-            // Jika chapter sudah 'Completed', gunakan teks koreksi.
-            // Jika tidak, gunakan teks asli sebagai fallback.
             if ($chapter->status === 'Completed' && !empty($chapter->corrected_text)) {
                 $full_corrected_text .= $chapter->chapter_title . $separator . $chapter->corrected_text . $separator;
             } else {
@@ -196,14 +174,12 @@ class DocumentController extends Controller
             }
         }
 
-        // Render Blade HTML (versi khusus untuk PDF)
         $html = view('pdf.correction', [
             'title'          => $document->file_name,
             'corrected_text' => trim($full_corrected_text),
             'original_text'  => trim($full_original_text),
         ])->render();
 
-        // Buat PDF dari HTML Blade
         $pdf = Pdf::loadHTML($html)->setPaper('a4');
 
         $filename = 'koreksi-'.Str::slug($document->file_name).'-'.now()->format('Ymd-His').'.pdf';
@@ -212,7 +188,6 @@ class DocumentController extends Controller
     }
 
 
-    // ... (Fungsi viewOriginal tetap SAMA) ...
     public function viewOriginal($id)
     {
         $document = Document::findOrFail($id);
@@ -250,15 +225,9 @@ class DocumentController extends Controller
         }
     }
 
-    // <<< MODIFIKASI DIMULAI >>>
-    // ==========================================================
-    // METHOD BARU UNTUK DEBUGGING
-    // ==========================================================
     public function debugUploadTestcase(Request $request)
     {
         try {
-            // 1. Definisikan file testcase Anda
-            // (Menggunakan nama file yang Anda sebutkan di prompt sebelumnya)
             $testcaseFileName = '5025211016-Undergraduate_Thesis_compressed.pdf';
             $sourcePath = public_path('files/' . $testcaseFileName);
 
@@ -267,16 +236,13 @@ class DocumentController extends Controller
                 return back()->with('error', 'File testcase tidak ditemukan di ' . $sourcePath);
             }
 
-            // 2. Tentukan tujuan (logika yang sama seperti di fungsi upload)
             $document_name = "Debug Testcase - " . $testcaseFileName;
-            // Gunakan Str::slug untuk membersihkan nama file
             $newFilenameBase = time() . '_' . Str::slug(pathinfo($document_name, PATHINFO_FILENAME), '_');
             $newFilename = $newFilenameBase . '.pdf';
 
             $usedDisk = config('filesystems.default') ?: 'public';
-            $destinationPath = 'documents/' . $newFilename; // Path relatif untuk disk
+            $destinationPath = 'documents/' . $newFilename; 
 
-            // 3. Salin file dari /public ke /storage
             $fileContents = File::get($sourcePath);
             Storage::disk($usedDisk)->put($destinationPath, $fileContents);
             
@@ -287,11 +253,10 @@ class DocumentController extends Controller
                 'disk' => $usedDisk,
             ]);
 
-            // 4. Buat record di DB (logika yang sama seperti fungsi upload)
             $document = Document::create([
                 'user_id' => Auth::id(),
                 'file_name' => $document_name,
-                'file_location' => $destinationPath, // Simpan path relatif disk
+                'file_location' => $destinationPath, 
                 'disk' => $usedDisk,
                 'upload_status' => 'Processing', 
             ]);
@@ -303,10 +268,8 @@ class DocumentController extends Controller
                 'details' => 'Dokumen testcase di-trigger oleh user',
             ]);
 
-            // 5. Dispatch Job (logika yang sama seperti fungsi upload)
             ProcessDocumentCorrection::dispatch($document);
 
-            // 6. Redirect ke halaman status
             return redirect()->route('correction.status', $document->id) 
                              ->with('success', 'Dokumen testcase berhasil di-trigger dan sedang diproses...');
 
@@ -315,5 +278,4 @@ class DocumentController extends Controller
             return back()->with('error', 'Terjadi kesalahan saat memproses file testcase.');
         }
     }
-    // <<< MODIFIKASI BERAKHIR >>>
 }

@@ -47,25 +47,17 @@ class ProcessDocumentCorrection implements ShouldQueue
 
         $this->pushProgress($document, 'Memulai pemrosesan dokumen...', 'Processing');
 
-        // ============================================================
-        // PERBAIKAN UTAMA: DIRECT DISK ACCESS (Bukan Download HTTP)
-        // ============================================================
         $file_path = null;
 
         try {
-            // 1. Tentukan Disk yang digunakan (default 'public' jika null)
             $diskName = $document->disk ?: 'public';
-            
-            // 2. Dapatkan lokasi file relatif
+
             $relativePath = $document->file_location;
 
-            // 3. Cek apakah file ada di disk
             if (!Storage::disk($diskName)->exists($relativePath)) {
                 throw new \Exception("File fisik tidak ditemukan di storage (Disk: $diskName, Path: $relativePath)");
             }
 
-            // 4. Dapatkan ABSOLUTE PATH sistem (contoh: /home/user/TataKata/storage/app/public/documents/file.pdf)
-            // Ini yang dibutuhkan oleh PDF Parser
             $file_path = Storage::disk($diskName)->path($relativePath);
 
             Log::info("Worker accessing file directly at: {$file_path}", ['document_id' => $document->id]);
@@ -77,7 +69,6 @@ class ProcessDocumentCorrection implements ShouldQueue
         }
 
         try {
-            // Cek PDF Header (Langsung baca dari file asli, tidak perlu temp file)
             try {
                 $h = @fopen($file_path, 'rb');
                 $first = @fread($h, 5);
@@ -91,15 +82,13 @@ class ProcessDocumentCorrection implements ShouldQueue
 
             $parser = new Parser();
             $this->pushProgress($document, 'Membaca dan mempartisi dokumen (per halaman)...');
-            
-            // Parse langsung dari file asli
+
             $pdf = $parser->parseFile($file_path);
             $pages = $pdf->getPages();
             Log::info("Total pages found: " . count($pages), ['document_id' => $this->documentId]);
 
             $chapters_data = $this->splitByBab($pages); 
             
-            // Logika "Bukan File TA" (No_Chapters)
             if (empty($chapters_data)) {
                  Log::warning("No valid chapters found for Document ID {$this->documentId}. Marking as 'No_Chapters'.");
                  $document->update([
@@ -167,7 +156,6 @@ class ProcessDocumentCorrection implements ShouldQueue
         }
     }
 
-    // Fungsi cleanPageText v6.1 (sudah benar)
     private function cleanPageText(string $text): string
     {
         $text = mb_convert_encoding($text, 'UTF-8', 'UTF-8');
@@ -177,38 +165,29 @@ class ProcessDocumentCorrection implements ShouldQueue
         return trim($text);
     }
 
-
-    // =================================================================
-    // == FUNGSI SPLITBYBAB (v12 - Perbaikan Anti-ToC & Cyrillic) ==
-    // =================================================================
     private function splitByBab(array $pages): array
     {
         try {
-            // Ambil daftar isi (peta bab)
             $toc = $this->extractTOC($pages);
             $chapters = [];
 
-            // Gabungkan semua teks halaman jadi satu string
             $fullText = '';
             $tocEndFound = false;
 
             foreach ($pages as $pageNum => $page) {
                 $text = $this->cleanPageText($page->getText());
 
-                // Deteksi akhir daftar isi → mulai merekam isi bab setelahnya
                 if (!$tocEndFound && preg_match('/DAFTAR\s+ISI/i', $text)) {
                     Log::info("Mulai halaman daftar isi di halaman {$pageNum}");
                     continue;
                 }
 
-                // Kalau halaman sudah bukan daftar isi lagi, mulai gabung konten
                 if ($toc && !$tocEndFound) {
-                    // Jika halaman mengandung kata 'BAB I' atau 'BAB 1', berarti daftar isi sudah selesai
                     if (preg_match('/\bBAB\s+(I|1)\b/i', $text)) {
                         $tocEndFound = true;
                         Log::info("Akhir daftar isi ditemukan di halaman {$pageNum}");
                     } else {
-                        continue; // Masih di halaman daftar isi
+                        continue; 
                     }
                 }
 
@@ -217,7 +196,6 @@ class ProcessDocumentCorrection implements ShouldQueue
                 }
             }
 
-            // Normalisasi teks
             $fullText = str_replace(["ВАВ", "І", "Ш"], ["BAB", "I", "II"], $fullText);
 
             if ($toc && count($toc) > 0) {
@@ -248,16 +226,16 @@ class ProcessDocumentCorrection implements ShouldQueue
                             $regex_end_last = '/\b(DAFTAR\s+PUSTAKA|REFERENSI|PUSTAKA|LAMPIRAN|GLOSARIUM|BIODATA\s+PENULIS|(?:[\(\[\*]?\s*)?HALAMAN\s+INI\s+SENGAJA\s+DIKOSONGKAN(?:\s*[\)\]\*])?|HALAMAN\s+KOSONG)\b/i';
 
                             if (preg_match($regex_end_last, $fullText, $mEnd, PREG_OFFSET_CAPTURE, $startPos)) {
-                                $endPos = $mEnd[0][1]; // posisi pembatas
+                                $endPos = $mEnd[0][1]; 
                             }
                         }
 
                         $chapterText = substr($fullText, $startPos, $endPos ? $endPos - $startPos : null);
                         $chapterText = trim(preg_replace($startPattern, '', $chapterText, 1));
-                        $chapterText = preg_replace('/\n{1,5}\d{1,4}\s*$/m', '', $chapterText); // hapus nomor halaman sisa
-                        $chapterText = preg_replace('/\(\s*\)$/m', '', $chapterText);           // hapus "(" satuan
-                        $chapterText = preg_replace('/^\s*\d{1,4}\s*$/m', '', $chapterText);    // angka berdiri sendiri
-                        $chapterText = preg_replace('/^\s*[\(\[]\s*$/m', '', $chapterText);     // "(" atau "[" sebaris
+                        $chapterText = preg_replace('/\n{1,5}\d{1,4}\s*$/m', '', $chapterText); 
+                        $chapterText = preg_replace('/\(\s*\)$/m', '', $chapterText);           
+                        $chapterText = preg_replace('/^\s*\d{1,4}\s*$/m', '', $chapterText);    
+                        $chapterText = preg_replace('/^\s*[\(\[]\s*$/m', '', $chapterText);    
                         $chapters[] = [
                             'judul' => "BAB {$currentNumber} {$currentTitle}",
                             'isi' => trim($chapterText)
@@ -314,7 +292,6 @@ class ProcessDocumentCorrection implements ShouldQueue
 
             $tocEntries = collect($tocEntries)
                 ->unique(function ($e) {
-                    // Samakan huruf besar kecil + rapikan spasi
                     return strtoupper(preg_replace('/\s+/', ' ', $e['judul']));
                 })
                 ->values()
@@ -332,7 +309,6 @@ class ProcessDocumentCorrection implements ShouldQueue
     {
         $subbabList = [];
 
-        // Pola umum: "1.1", "1.2.3", atau "I.1"
         $regex_subbab = '/(?<=\n|\r|^)(\d+\.\d+|[IVX]+\.\d+)\s+([A-Z][A-Za-z\s\-]+)/';
 
         preg_match_all($regex_subbab, $chapterText, $matches, PREG_OFFSET_CAPTURE);

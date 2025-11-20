@@ -13,7 +13,7 @@ class Document extends Model
         'user_id',
         'file_name',
         'file_location',
-        'disk', // Pastikan 'disk' ada di fillable
+        'disk', 
         'upload_status',
         'details',
         'original_text',
@@ -30,10 +30,6 @@ class Document extends Model
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * TAMBAHKAN FUNGSI INI
-     * Get all of the chapters for the document.
-     */
     public function chapters()
     {
         return $this->hasMany(DocumentChapter::class)->orderBy('chapter_order');

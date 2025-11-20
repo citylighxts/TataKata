@@ -46,7 +46,6 @@ class HistoryController extends Controller
         $itemType = $request->input('item_type');
         $userId = Auth::id();
 
-        // Only documents are supported here (kept for future expansion)
         if ($itemType !== 'document') {
             return redirect()->route('history')->with('error', 'Tipe item tidak valid.');
         }
@@ -56,13 +55,11 @@ class HistoryController extends Controller
                                 ->where('user_id', $userId)
                                 ->firstOrFail();
 
-            // Prevent deleting documents that are currently being processed.
             $statusLower = strtolower(trim($document->upload_status ?? ''));
             if ($statusLower === 'processing') {
                 return redirect()->route('history')->with('error', "Dokumen ID {$itemId} sedang diproses dan tidak dapat dihapus.");
             }
 
-            // Safely attempt to delete the stored file (log but don't fail the whole operation)
             if (!empty($document->file_location)) {
                 try {
                     if (Storage::disk('public')->exists($document->file_location)) {
@@ -106,7 +103,6 @@ class HistoryController extends Controller
 
             [$itemType, $itemId] = $parts;
 
-            // Only allow document deletions in this bulk operation
             if ($itemType !== 'document') {
                 $errors[] = "Tipe item tidak didukung untuk penghapusan massal: {$itemKey}";
                 continue;
@@ -122,7 +118,6 @@ class HistoryController extends Controller
                                     ->where('user_id', $userId)
                                     ->firstOrFail();
 
-                // Prevent deleting a document that is currently being processed.
                 $statusLower = strtolower(trim($document->upload_status ?? ''));
                 if ($statusLower === 'processing') {
                     return redirect()->route('history')->with('error', 'Dokumen sedang diproses dan tidak dapat dihapus.');
@@ -165,7 +160,6 @@ class HistoryController extends Controller
 
         $userId = Auth::id();
         $zipFileName = 'takatakata_koreksi_massal_' . time() . '.zip';
-        // Buat folder 'temp' untuk file ZIP sementara
         $zipDir = storage_path('app/public/temp');
         $zipFilePath = $zipDir . '/' . $zipFileName;
         
@@ -183,7 +177,7 @@ class HistoryController extends Controller
         
         foreach ($request->input('selected_items') as $itemKey) {
             $parts = explode('_', $itemKey, 2);
-            if (count($parts) !== 2) continue; // Skip invalid format
+            if (count($parts) !== 2) continue; 
             
             [$itemType, $itemId] = $parts;
 
@@ -193,12 +187,10 @@ class HistoryController extends Controller
                                     ->where('upload_status', 'Completed')
                                     ->first();
 
-                // Ubah dari mengunduh file, menjadi menambahkan teks koreksi
                 if ($document && !empty($document->corrected_text)) {
                     $safeFileName = Str::slug($document->file_name);
                     $filenameInZip = "koreksi-{$safeFileName}-{$document->id}.md";
-                    
-                    // Tambahkan konten teks sebagai file .md ke ZIP
+
                     $zip->addFromString($filenameInZip, $document->corrected_text);
                     $downloadedCount++;
                 }
@@ -208,14 +200,12 @@ class HistoryController extends Controller
         $zip->close();
 
         if ($downloadedCount === 0) {
-            // Hapus file ZIP kosong
             if (file_exists($zipFilePath)) {
                 unlink($zipFilePath);
             }
             return redirect()->route('history')->with('error', 'Tidak ada dokumen yang valid atau selesai untuk diunduh. Pastikan semua dokumen telah selesai dikoreksi.');
         }
 
-        // Unduh file ZIP dan hapus setelah terkirim
         return response()->download($zipFilePath, $zipFileName)->deleteFileAfterSend(true);
     }
 }

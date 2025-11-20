@@ -16,7 +16,6 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Allow worker to access original files via signed URLs without auth middleware
 Route::get('/correction/{document}/original', [DocumentController::class, 'viewOriginal'])->name('correction.original');
 
 Route::middleware('auth')->group(function () {
@@ -26,7 +25,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/upload', [DocumentController::class, 'uploadForm'])->name('upload');
     Route::post('/upload', [DocumentController::class, 'upload'])->name('upload.post');
 
-    // Rute debug untuk mensimulasikan upload dari file testcase
     Route::get('/debug-upload-testcase', [DocumentController::class, 'debugUploadTestcase'])
             ->name('upload.debug');
 

@@ -6,9 +6,6 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('document_chapters', function (Blueprint $table) {
@@ -18,15 +15,12 @@ return new class extends Migration
             $table->integer('chapter_order')->default(0);
             $table->longText('original_text')->nullable();
             $table->longText('corrected_text')->nullable();
-            $table->string('status')->default('Pending'); // Pending, Processing, Completed, Failed
-            $table->text('details')->nullable(); // Untuk pesan error
+            $table->string('status')->default('Pending'); 
+            $table->text('details')->nullable(); 
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('document_chapters');
