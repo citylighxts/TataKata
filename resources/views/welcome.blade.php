@@ -59,7 +59,7 @@
         </div>
 
         {{-- Mobile Menu Dropdown --}}
-        <div id="mobileMenu" class="md:hidden hidden backdrop-blur-xl border-t transition-colors duration-500" style="background-color: rgba(10, 10, 46, 0.95);">
+        <div id="mobileMenu" class="md:hidden hidden backdrop-blur-xl border-t transition-colors duration-500 theme-mobile-menu">
             <div class="px-4 py-4 space-y-3">
                 {{-- Theme Toggle for Mobile --}}
                 <button onclick="toggleTheme()" class="w-full px-6 py-3 border-2 rounded-full transition-all duration-300 font-medium text-center flex items-center justify-center gap-2 theme-btn-secondary">
@@ -462,6 +462,11 @@
     color: #85BBEB;
 }
 
+.theme-mobile-menu {
+    background-color: rgba(10, 10, 46, 0.95);
+    border-color: rgba(133, 187, 235, 0.2);
+}
+
 #themeToggle {
     border-color: rgba(133, 187, 235, 0.4);
     color: #85BBEB;
@@ -555,6 +560,11 @@ body.light-mode .theme-btn-outline {
 body.light-mode .theme-btn-outline:hover {
     background-color: rgba(255, 255, 255, 0.95);
     border-color: rgba(133, 187, 235, 0.5);
+}
+
+body.light-mode .theme-mobile-menu {
+    background-color: rgba(255, 255, 255, 0.95);
+    border-color: rgba(133, 187, 235, 0.15);
 }
 
 body.light-mode #heroTitle {

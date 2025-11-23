@@ -81,7 +81,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                 </svg>
                 <span class="font-medium">Kembali ke Beranda</span>
-            </a>
+=            </a>
         </div>
 
         {{-- Main Content --}}
@@ -126,7 +126,7 @@
                                     {{-- Indikator Status --}}
                                     <span class="px-3 sm:px-4 py-1 rounded-full text-xs sm:text-sm font-semibold"
                                           :class="{
-                                              'bg-yellow-300/20 text-yellow-300': status === 'Pending',
+                                              'bg-yellow-300/20 text-[#D69E2E]': status === 'Pending',
                                               'bg-blue-300/20 text-blue-300': status === 'Queued' || status === 'Processing',
                                               'bg-green-400/20 text-green-400': status === 'Completed',
                                               'bg-red-400/20 text-red-400': status === 'Failed'
@@ -233,7 +233,7 @@
                                                                 <div class="border-l-4 border-yellow-400 rounded-r-lg p-4 transition-colors theme-correction-item">
                                                                     {{-- Header Item --}}
                                                                     <div class="flex items-start justify-between mb-3">
-                                                                        <span class="text-yellow-300 font-bold text-base" x-text="'#' + (index + 1)"></span>
+                                                                        <span class="corrected-index font-bold text-base" x-text="'#' + (index + 1)"></span>
                                                                     </div>
                                                                     
                                                                     {{-- Teks Asli --}}
@@ -442,6 +442,10 @@
     color: white;
 }
 
+.corrected-index {
+    color: white;
+}
+
 /* Dynamic gradient text colors - DARK MODE */
 .gradient-text-navbar {
     background: linear-gradient(to right, #FFFFFF, #85BBEB, #FFFFFF);
@@ -572,6 +576,10 @@ body.light-mode #themeToggle:hover {
 }
 
 body.light-mode .corrected-text {
+    color: #000000;
+}
+
+body.light-mode .corrected-index {
     color: #000000;
 }
 
