@@ -17,7 +17,7 @@ class AppServiceProvider extends ServiceProvider
         if (env('APP_URL')) {
             $this->app['url']->forceRootUrl(env('APP_URL'));
             
-            $this->app['url']->forceScheme('https');
+            $this->app['url']->forceScheme('http');
         }
     }
 }

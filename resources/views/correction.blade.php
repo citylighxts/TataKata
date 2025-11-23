@@ -265,7 +265,7 @@
                                                                             <p class="text-green-400/90 text-xs font-semibold uppercase tracking-wide">Perbaikan:</p>
                                                                         </div>
                                                                         <div class="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
-                                                                            <p class="text-green-300 text-sm leading-relaxed" x-text="item.corrected"></p>
+                                                                            <p class=" text-sm leading-relaxed corrected-text" x-text="item.corrected"></p>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -438,6 +438,10 @@
     border-color: rgba(133, 187, 235, 0.6);
 }
 
+.corrected-text {
+    color: white;
+}
+
 /* Dynamic gradient text colors - DARK MODE */
 .gradient-text-navbar {
     background: linear-gradient(to right, #FFFFFF, #85BBEB, #FFFFFF);
@@ -565,6 +569,10 @@ body.light-mode #themeToggle {
 body.light-mode #themeToggle:hover {
     background-color: rgba(255, 237, 213, 0.6);
     border-color: rgba(245, 158, 11, 0.4);
+}
+
+body.light-mode .corrected-text {
+    color: #000000;
 }
 
 /* Light mode gradient text */
