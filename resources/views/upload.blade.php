@@ -22,10 +22,10 @@
                     </div>
                 </a>
 
-                {{-- Tata Kata - Centered --}}
+                {{-- TataTAku - Centered --}}
                 <div class="absolute left-1/2 transform -translate-x-1/2">
                     <span class="text-lg sm:text-xl md:text-2xl font-bold gradient-text-navbar animate-gradient-text whitespace-nowrap bg-[length:200%_auto]">
-                        Tata Kata
+                        TataTAku
                     </span>
                 </div>
 

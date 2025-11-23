@@ -5,7 +5,7 @@
 
     {{-- Navbar --}}
     <header class="flex justify-between items-center px-8 py-6 bg-gradient-to-r from-[#4a4a6a] via-[#5a6080] to-[#6a7a9a] shadow-lg">
-        <div class="text-2xl font-bold text-white">Tata Kata</div>
+        <div class="text-2xl font-bold text-white">TataTAku</div>
         <div class="space-x-4">
             <a href="{{ route('login') }}" class="px-6 py-2.5 border-2 border-white text-white rounded-full hover:bg-white hover:text-[#4a4a6a] transition-all duration-300 font-medium">Masuk</a>
             <a href="{{ route('register') }}" class="px-6 py-2.5 bg-white text-[#4a4a6a] rounded-full hover:bg-indigo-50 transition-all duration-300 font-medium shadow-md">Daftar</a>
@@ -19,7 +19,7 @@
         <div class="max-w-2xl space-y-8 flex-1">
             <div class="space-y-4">
                 <h2 class="text-4xl md:text-5xl font-bold text-gray-900 leading-tight">Periksa Kata, Sempurnakan Bahasa</h2>
-                <h1 class="text-6xl md:text-7xl font-extrabold text-[#4a4a6a]">Tata Kata.</h1>
+                <h1 class="text-6xl md:text-7xl font-extrabold text-[#4a4a6a]">TataTAku.</h1>
             </div>
             
             <p class="text-lg md:text-xl text-gray-600 leading-relaxed">
@@ -74,10 +74,10 @@
 
     <footer class="bg-gradient-to-r from-[#4a4a6a] via-[#5a6080] to-[#6a7a9a] text-white text-center py-4">
         <p class="text-sm">
-            &copy; {{ date('Y') }} <span class="font-semibold">TataKata</span>. Semua hak cipta dilindungi.
+            &copy; {{ date('Y') }} <span class="font-semibold">TataTAku</span>. Semua hak cipta dilindungi.
         </p>
         <p class="text-xs opacity-80 mt-1">
-            Tata Kata 
+            TataTAku 
         </p>
     </footer>
 </div>

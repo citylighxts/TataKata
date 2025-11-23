@@ -18,14 +18,14 @@
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer flex-shrink-0">
                     <div class="relative">
                         <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
+                        <img src="{{ asset('images/logofix.png') }}" alt="Logo" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
                 </a>
 
-                {{-- Tata Kata - Centered --}}
+                {{-- TataTAku - Centered --}}
                 <div class="absolute left-1/2 transform -translate-x-1/2">
                     <span class="text-lg sm:text-xl md:text-2xl font-bold gradient-text-navbar animate-gradient-text whitespace-nowrap bg-[length:200%_auto]">
-                        Tata Kata
+                        TataTAku
                     </span>
                 </div>
 
@@ -266,7 +266,7 @@
                     <span class="gradient-text-cta animate-gradient-text bg-[length:200%_auto]">Tulisan Anda?</span>
                 </h2>
                 <p class="text-xl mb-8 max-w-1xl mx-auto leading-relaxed transition-colors duration-500 theme-subtitle">
-                    Bergabunglah dengan <span class="text-[#85BBEB] font-semibold">mahasiswa</span> yang telah mempercayai <span class="text-[#85BBEB] font-semibold">Tata Kata</span> untuk menyempurnakan tugas akhir mereka.
+                    Bergabunglah dengan <span class="text-[#85BBEB] font-semibold">mahasiswa</span> yang telah mempercayai <span class="text-[#85BBEB] font-semibold">TataTAku</span> untuk menyempurnakan tugas akhir mereka.
                 </p>
                 <a href="{{ route('register') }}" class="inline-flex items-center gap-3 px-10 py-5 bg-gradient-to-r from-[#85BBEB] via-[#85BBEB] to-[#85BBEB] text-[#0A0A2E] text-lg rounded-full hover:shadow-2xl hover:shadow-[#85BBEB]/60 hover:scale-105 transition-all duration-300 font-bold group relative overflow-hidden">
                     <span class="relative z-10 flex items-center gap-3">
@@ -288,9 +288,9 @@
                     <div class="flex items-center gap-3 group">
                         <div class="relative">
                             <div class="absolute inset-0 bg-[#85BBEB] rounded-lg blur opacity-50 group-hover:opacity-75 transition-opacity duration-300"></div>
-                            <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-10 h-10 rounded-lg">
+                            <img src="{{ asset('images/logofix.png') }}" alt="Logo" class="relative w-10 h-10 rounded-lg">
                         </div>
-                        <span class="text-xl font-bold gradient-text-footer">Tata Kata</span>
+                        <span class="text-xl font-bold gradient-text-footer">TataTAku</span>
                     </div>
                     <p class="leading-relaxed transition-colors duration-500 theme-footer-text">
                         Platform koreksi tata bahasa berbasis AI untuk menyempurnakan tulisan tugas akhir Anda.
@@ -326,7 +326,7 @@
                                     <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/>
                                 </svg>
                             </div>
-                            info@tatakata.com
+                            info@tatataku.com
                         </li>
                         <li class="flex items-center gap-3 group hover:text-[#85BBEB] transition-colors duration-300">
                             <div class="w-8 h-8 rounded-lg bg-[#85BBEB]/10 border border-[#85BBEB]/30 flex items-center justify-center group-hover:bg-[#85BBEB]/20 transition-all duration-300">
@@ -341,7 +341,7 @@
             </div>
 
             <div class="border-t pt-8 flex flex-col md:flex-row justify-between items-center gap-4 transition-colors duration-500 theme-footer-border">
-                <p class="text-sm theme-footer-text">&copy; {{ date('Y') }} Tata Kata. Semua hak dilindungi.</p>
+                <p class="text-sm theme-footer-text">&copy; {{ date('Y') }} TataTAku. Semua hak dilindungi.</p>
                 <div class="flex gap-6 text-sm theme-footer-text">
                     <a href="#" class="hover:text-[#85BBEB] transition-colors duration-300">Kebijakan Privasi</a>
                     <a href="#" class="hover:text-[#85BBEB] transition-colors duration-300">Syarat & Ketentuan</a>

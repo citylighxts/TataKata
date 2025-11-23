@@ -28,9 +28,9 @@
                 <div class="inline-flex items-center gap-3 group mb-6">
                     <div class="relative">
                         <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
+                        <img src="{{ asset('images/logofix.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
-                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">Tata Kata</span>
+                    <span class="text-2xl font-bold bg-gradient-to-r from-[#FEF9F0] via-[#85BBEB] to-[#FEF9F0] bg-clip-text text-transparent animate-gradient-text">TataTAku</span>
                 </div>
 
                 {{-- Email Icon --}}
@@ -107,7 +107,7 @@
             <div class="mt-6 pt-6 border-t border-[#85BBEB]/20">
                 <p class="text-xs text-[#C0C0C0] text-center leading-relaxed">
                     Mengalami masalah? 
-                    <a href="mailto:support@tatakata.com" class="text-[#85BBEB] hover:text-[#FEF9F0] transition-colors duration-300 font-medium">
+                    <a href="mailto:support@tatataku.com" class="text-[#85BBEB] hover:text-[#FEF9F0] transition-colors duration-300 font-medium">
                         Hubungi dukungan kami
                     </a>
                 </p>

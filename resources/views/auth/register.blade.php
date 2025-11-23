@@ -18,13 +18,13 @@
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer">
                     <div class="relative">
                         <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
+                        <img src="{{ asset('images/logofix.png') }}" alt="Logo" class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
                 </a>
 
-                {{-- Tata Kata - Centered --}}
+                {{-- TataTAku - Centered --}}
                 <div class="absolute left-1/2 transform -translate-x-1/2">
-                    <span class="text-2xl font-bold gradient-text-navbar animate-gradient-text bg-[length:200%_auto] whitespace-nowrap">Tata Kata</span>
+                    <span class="text-2xl font-bold gradient-text-navbar animate-gradient-text bg-[length:200%_auto] whitespace-nowrap">TataTAku</span>
                 </div>
 
                 {{-- Desktop Actions --}}
@@ -88,7 +88,7 @@
                             <span class="inline-block">Bergabung</span><br>
                             <span class="relative inline-block">
                                 <span class="absolute inset-0 bg-gradient-to-r from-[#85BBEB] to-[#FEF9F0] blur-2xl opacity-20"></span>
-                                <span class="relative gradient-text-hero animate-gradient-text bg-[length:200%_auto]">dengan Tata Kata</span>
+                                <span class="relative gradient-text-hero animate-gradient-text bg-[length:200%_auto]">dengan TataTAku</span>
                             </span>
                         </h1>
                         
@@ -149,7 +149,7 @@
                     {{-- Mobile Logo --}}
                     <div class="lg:hidden text-center mb-6">
                         <h1 class="text-3xl font-bold gradient-text-hero animate-gradient-text bg-[length:200%_auto]">
-                            Tata Kata
+                            TataTAku
                         </h1>
                         <p class="mt-2 transition-colors duration-500 theme-subtitle">Buat akun baru</p>
                     </div>

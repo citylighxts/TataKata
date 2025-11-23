@@ -18,14 +18,14 @@
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer flex-shrink-0">
                     <div class="relative">
                         <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
+                        <img src="{{ asset('images/logofix.png') }}" alt="Logo" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
                 </a>
 
-                {{-- Tata Kata - Centered --}}
+                {{-- TataTAku - Centered --}}
                 <div class="absolute left-1/2 transform -translate-x-1/2">
                     <span class="text-lg sm:text-xl md:text-2xl font-bold gradient-text-navbar animate-gradient-text whitespace-nowrap bg-[length:200%_auto]">
-                        Tata Kata
+                        TataTAku
                     </span>
                 </div>
 
@@ -112,7 +112,7 @@
                 Selamat datang di
             </h1>
             <h2 class="text-4xl lg:text-5xl font-extrabold mb-4">
-                <span class="gradient-text-hero animate-gradient-text bg-[length:200%_auto]">Tata Kata.</span>
+                <span class="gradient-text-hero animate-gradient-text bg-[length:200%_auto]">TataTAku.</span>
             </h2>
             <p class="text-xl leading-relaxed transition-colors duration-500 theme-subtitle">
                 Kelola dokumen Anda dengan mudah dan efisien

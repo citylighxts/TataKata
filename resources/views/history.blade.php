@@ -18,15 +18,15 @@
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer absolute left-0 top-1/2 -translate-y-1/2 pl-4">
                     <div class="relative">
                         <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo"
+                        <img src="{{ asset('images/logofix.png') }}" alt="Logo"
                             class="relative w-12 h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
                 </a>
                 
-                {{-- Tata Kata --}}
+                {{-- TataTAku --}}
                 <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
                     <span class="text-2xl font-bold gradient-text-navbar animate-gradient-text bg-[length:200%_auto]">
-                        Tata Kata
+                        TataTAku
                     </span>
                 </div>
 

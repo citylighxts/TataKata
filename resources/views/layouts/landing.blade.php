@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TataKata</title>
+    <title>TataTAku</title>
     @vite('resources/css/app.css')
 
 </head>
@@ -11,7 +11,7 @@
     <div class="min-h-screen flex flex-col">
         <!-- Navbar -->
         <header class="flex justify-between items-center p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-            <h1 class="text-2xl font-bold">TataKata</h1>
+            <h1 class="text-2xl font-bold">TataTAku</h1>
             <div>
                 <a href="{{ route('login') }}" class="px-4 py-2 rounded-full bg-white text-indigo-600 hover:bg-gray-100">Masuk</a>
                 <a href="{{ route('register') }}" class="px-4 py-2 ml-2 rounded-full bg-indigo-500 hover:bg-indigo-700">Daftar</a>
@@ -22,7 +22,7 @@
         <main class="flex flex-1 flex-col md:flex-row items-center justify-between px-10 py-20">
             <div class="md:w-1/2">
                 <h2 class="text-4xl font-bold mb-4">Periksa Kata, Sempurnakan Bahasa</h2>
-                <h3 class="text-5xl font-extrabold text-indigo-700 mb-6">Tata Kata.</h3>
+                <h3 class="text-5xl font-extrabold text-indigo-700 mb-6">TataTAku.</h3>
                 <p class="text-lg mb-6">
                     Tingkatkan kualitas tulisan tugas akhir Anda dengan koreksi otomatis tata bahasa,
                     ejaan, dan gaya penulisan menggunakan teknologi AI.
