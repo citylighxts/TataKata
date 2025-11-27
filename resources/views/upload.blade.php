@@ -18,7 +18,7 @@
                 <a href="{{ url('/') }}" class="flex items-center gap-3 group cursor-pointer flex-shrink-0">
                     <div class="relative">
                         <div class="absolute inset-0 bg-[#85BBEB] rounded-xl blur-lg opacity-50 group-hover:opacity-100 transition-all duration-300 animate-pulse-subtle"></div>
-                        <img src="{{ asset('images/ikon-logo.png') }}" alt="Logo" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
+                        <img src="{{ asset('images/logofix.png') }}" alt="Logo" class="relative w-10 h-10 sm:w-12 sm:h-12 rounded-xl transform group-hover:scale-110 transition-transform duration-300">
                     </div>
                 </a>
 
@@ -213,7 +213,7 @@
                                         </div>
                                     </div>
                                     <h3 class="text-lg font-semibold mb-2 theme-upload-title">
-                                        Tarik & lepas dokumen disini
+                                        Tarik & lepas dokumen Tugas Akhir disini
                                     </h3>
                                     <p class="text-sm mb-3 theme-upload-subtitle">
                                         atau klik untuk memilih file
@@ -222,7 +222,7 @@
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
                                         </svg>
-                                        <span>Format: PDF, DOC, DOCX (Max: 10MB)</span>
+                                        <span>Format: PDF (Max: 2MB)</span>
                                     </div>
                                 </div>
 

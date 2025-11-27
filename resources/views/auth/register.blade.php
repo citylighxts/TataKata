@@ -94,7 +94,7 @@
                         
                         <p class="text-lg leading-relaxed relative pl-4 transition-colors duration-500 theme-subtitle">
                             <span class="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-[#85BBEB] to-transparent rounded-full"></span>
-                            Sempurnakan tugas akhir Anda dengan teknologi AI terdepan. Mulai perjalanan menulis yang lebih baik hari ini.
+                            Sempurnakan <strong>tugas akhir</strong> Anda dengan teknologi AI terdepan. Mulai perjalanan menulis yang lebih baik hari ini.
                         </p>
                     </div>
 
@@ -107,8 +107,8 @@
                                 </svg>
                             </div>
                             <div>
-                                <h3 class="font-semibold mb-1 transition-colors duration-500 theme-title">Gratis Selamanya</h3>
-                                <p class="text-sm transition-colors duration-500 theme-subtitle">Akses penuh tanpa biaya tersembunyi</p>
+                                <h3 class="font-semibold mb-1 transition-colors duration-500 theme-title">Gratis</h3>
+                                <p class="text-sm transition-colors duration-500 theme-subtitle">Akses penuh tanpa biaya</p>
                             </div>
                         </div>
                         

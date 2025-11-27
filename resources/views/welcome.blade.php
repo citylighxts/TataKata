@@ -103,7 +103,7 @@
                     </h1>
                     <p class="text-xl leading-relaxed max-w-xl relative transition-colors duration-500" id="heroDesc">
                         <span class="absolute -left-3 top-0 w-1 h-full bg-gradient-to-b from-[#85BBEB] to-transparent rounded-full"></span>
-                        Platform koreksi tata bahasa berbasis AI yang membantu menyempurnakan tulisan tugas akhir Anda dengan akurat dan efisien.
+                        Platform koreksi tata bahasa berbasis AI yang membantu menyempurnakan tulisan <strong>tugas akhir</strong> Anda dengan akurat dan efisien.
                     </p>
                 </div>
 
@@ -227,8 +227,8 @@
                         1
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold mb-3 transition-colors duration-500 theme-title">Unggah Dokumen</h3>
-                <p class="transition-colors duration-500 theme-subtitle">Upload file DOCX atau PDF yang ingin Anda periksa</p>
+                <h3 class="text-2xl font-bold mb-3 transition-colors duration-500 theme-title">Unggah Dokumen Tugas Akhir</h3>
+                <p class="transition-colors duration-500 theme-subtitle">Upload file PDF yang ingin Anda periksa</p>
             </div>
 
             <div class="relative text-center fade-in-up" style="animation-delay: 0.2s;">
@@ -250,7 +250,7 @@
                     </div>
                 </div>
                 <h3 class="text-2xl font-bold mb-3 transition-colors duration-500 theme-title">Terima Hasil</h3>
-                <p class="transition-colors duration-500 theme-subtitle">Dapatkan laporan lengkap dengan saran perbaikan</p>
+                <p class="transition-colors duration-500 theme-subtitle">Dapatkan laporan saran perbaikan</p>
             </div>
         </div>
     </section>
@@ -263,7 +263,7 @@
             <div class="relative backdrop-blur-xl rounded-3xl p-12 border text-center shadow-2xl transition-all duration-500 theme-cta">
                 <h2 class="text-4xl lg:text-5xl font-bold mb-6 transition-colors duration-500 theme-title">
                     Siap Menyempurnakan<br/>
-                    <span class="gradient-text-cta animate-gradient-text bg-[length:200%_auto]">Tulisan Anda?</span>
+                    <span class="gradient-text-cta animate-gradient-text bg-[length:200%_auto]">Tugas Akhir Anda?</span>
                 </h2>
                 <p class="text-xl mb-8 max-w-1xl mx-auto leading-relaxed transition-colors duration-500 theme-subtitle">
                     Bergabunglah dengan <span class="text-[#85BBEB] font-semibold">mahasiswa</span> yang telah mempercayai <span class="text-[#85BBEB] font-semibold">TataTAku</span> untuk menyempurnakan tugas akhir mereka.
@@ -293,7 +293,7 @@
                         <span class="text-xl font-bold gradient-text-footer">TataTAku</span>
                     </div>
                     <p class="leading-relaxed transition-colors duration-500 theme-footer-text">
-                        Platform koreksi tata bahasa berbasis AI untuk menyempurnakan tulisan tugas akhir Anda.
+                        Platform koreksi tata bahasa berbasis AI untuk menyempurnakan tulisan <strong>tugas akhir</strong> Anda.
                     </p>
                     
                 </div>

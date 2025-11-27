@@ -115,7 +115,7 @@
                 <span class="gradient-text-hero animate-gradient-text bg-[length:200%_auto]">TataTAku.</span>
             </h2>
             <p class="text-xl leading-relaxed transition-colors duration-500 theme-subtitle">
-                Kelola dokumen Anda dengan mudah dan efisien
+                Kelola dokumen <strong>Tugas Akhir</strong> Anda dengan mudah dan efisien
             </p>
         </div>
 
