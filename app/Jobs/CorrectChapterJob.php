@@ -90,12 +90,13 @@ class CorrectChapterJob implements ShouldQueue
             $promptString =
                 "INSTRUKSI: Gunakan Bahasa Indonesia baku dan gaya formal (akademik). Tugas Anda bukan merangkum, melainkan memberikan REKOMENDASI PERBAIKAN KALIMAT untuk bagian yang dapat ditingkatkan.\n\n" .
                 "ATURAN PENTING:\n" .
-                "1) Tampilkan HANYA kalimat atau frasa yang PERLU diperbaiki. Jangan menampilkan baris yang sudah baik.\n" .
-                "2) Jangan menambahkan teks seperti 'No correction needed', 'Tidak ada perubahan', atau komentar per baris.\n" .
-                "3) Untuk setiap rekomendasi tampilkan dua baris dengan format EXACT:\n" .
+                "1) Jangan mengubah menjadi bahasa lain, HANYA BAHASA INDONESIA\n." .
+                "2) Tampilkan HANYA kalimat atau frasa yang PERLU diperbaiki. Jangan menampilkan baris yang sudah baik.\n" .
+                "3) Jangan menambahkan teks seperti 'No correction needed', 'Tidak ada perubahan', atau komentar per baris.\n" .
+                "4) Untuk setiap rekomendasi tampilkan dua baris dengan format EXACT:\n" .
                 "- \"<Teks Asli>\"\n" .
                 "  -> \"<Rekomendasi Perbaikan>\"\n" .
-                "4) Sisipkan satu baris kosong antar item. Jika tidak ada satu pun kalimat yang perlu diperbaiki di seluruh teks, kembalikan persis satu baris: Dari teks tersebut tidak ada yang perlu dikoreksi.\n\n" .
+                "5) Sisipkan satu baris kosong antar item. Jika tidak ada satu pun kalimat yang perlu diperbaiki di seluruh teks, kembalikan persis satu baris: Dari teks tersebut tidak ada yang perlu dikoreksi.\n\n" .
                 "CONTOH:\n" .
                 "- \"analisa tehnik adalah penting. untuk industri.\"\n" .
                 "  -> \"Analisis teknik adalah penting untuk industri.\"\n\n" .
